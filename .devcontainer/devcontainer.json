@@ -1,0 +1,46 @@
+{
+	"containerEnv": {
+		"DISPLAY": "${localEnv:DISPLAY}",
+		"USER_NAME": "${localEnv:USER}"
+	},
+	"build": {
+		"dockerfile": "../Dockerfile",
+		"args": {
+			"USER_NAME": "${localEnv:USER}"
+		}
+	},
+	"name": "dev-convex-mpc",
+	"mounts": [
+		"source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
+		"source=/home/${localEnv:USER}/.ssh/,target=/home/${localEnv:USER}/.ssh/,type=bind",
+		"source=/dev,target=/dev,type=bind",
+		"source=/home/${localEnv:USER}/.raisim/,target=/home/${localEnv:USER}/.raisim/,type=bind"
+	],
+	"workspaceFolder": "/home/${localEnv:USER}/drcd_ws/src/convex-mpc",
+	"workspaceMount": "source=${localWorkspaceFolder},target=/home/${localEnv:USER}/drcd_ws/src/convex-mpc,type=bind",
+	"runArgs": [
+		"--name",
+		"dev-convex-mpc",
+		"--cap-add=SYS_PTRACE",
+		"--net=host",
+		"--privileged",
+		"--security-opt=seccomp=unconfined"
+	],
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"editor.detectIndentation": false,
+				"editor.insertSpaces": false,
+				"C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+			},
+			"extensions": [
+				"twxs.cmake",
+				"xaver.clang-format",
+				"ms-vscode-remote.vscode-remote-extensionpack",
+				"ms-vscode.cpptools-extension-pack",
+				"mhutchie.git-graph",
+				"donjayamanne.githistory"
+			]
+		}
+	}
+}
