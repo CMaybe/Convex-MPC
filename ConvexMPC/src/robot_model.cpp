@@ -3,19 +3,8 @@
 
 #include <iostream>
 namespace ConvexMPC {
-RobotModel::RobotModel(const RobotModel& other) : state_(other.state_) {}
-void RobotModel::setState(const RobotState& other) { state_ = other; }
-void RobotModel::setState(const Eigen::Vector<double, MPC_STATE_DIM>& state) { state_ = RobotState(state); }
-void RobotModel::setState(const Eigen::Vector3d& euler_angle,
-                          const Eigen::Vector3d& position,
-                          const Eigen::Vector3d& angular_velocity,
-                          const Eigen::Vector3d& linear_velocity) {
-    state_ = RobotState(euler_angle, position, angular_velocity, linear_velocity);
-}
-
-void RobotModel::updateAc() {
+void RobotModel::updateAc(const Eigen::Ref<const Eigen::Vector3d>& euler_angle) {
     Eigen::Matrix3d R_yaw;
-    Eigen::Vector3d euler_angle = state_.getEulerAngle();
     // clang-format off
     R_yaw << cos(euler_angle[2]), sin(euler_angle[2]), 0,
 			-sin(euler_angle[2]), cos(euler_angle[2]), 0,
@@ -26,9 +15,10 @@ void RobotModel::updateAc() {
     Ac_.block<3, 3>(3, 9) = Eigen::Matrix3d::Identity();
 }
 
-void RobotModel::updateBc(const std::array<Eigen::Vector3d, LEG_NUM>& foot_positions) {
+void RobotModel::updateBc(const Eigen::Ref<const Eigen::Matrix3d>& orientatoin_matrix,
+                          const std::array<Eigen::Vector3d, LEG_NUM>& foot_positions) {
     Eigen::Matrix3d world_inertia;
-    world_inertia = state_.getOrientationMatrix() * inertia_ * state_.getOrientationMatrix().transpose();
+    world_inertia = orientatoin_matrix * inertia_ * orientatoin_matrix.transpose();
     for (int leg_idx = 0; leg_idx < foot_positions.size(); ++leg_idx) {
         Bc_.block<3, 3>(6, 3 * leg_idx) = world_inertia.inverse() * ConvexMPC::skew(foot_positions[leg_idx]);
         Bc_.block<3, 3>(9, 3 * leg_idx) = (1 / mass_) * Eigen::Matrix3d::Identity();
