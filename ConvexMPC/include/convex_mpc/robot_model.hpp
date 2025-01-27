@@ -6,6 +6,7 @@
 #include <Eigen/Dense>
 #include <cmath>
 
+namespace ConvexMPC {
 class RobotModel {
 public:
     RobotModel() = default;
@@ -40,5 +41,6 @@ private:
 
     RobotState state_;
 };
+}  // namespace ConvexMPC
 
 #endif  // ROBOT_MODEL_HPP

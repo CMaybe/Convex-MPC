@@ -1,6 +1,7 @@
 #include "convex_mpc/utils.hpp"
 
-Eigen::Vector3d Utils::quaternion_to_euler(const Eigen::Vector4d& q) {
+namespace ConvexMPC {
+Eigen::Vector3d quaternion_to_euler(const Eigen::Vector4d& q) {
     Eigen::Vector3d eulerAngles;  // [roll, pitch, yaw]
 
     double norm = std::sqrt(q(0) * q(0) + q(1) * q(1) + q(2) * q(2) + q(3) * q(3));
@@ -27,9 +28,11 @@ Eigen::Vector3d Utils::quaternion_to_euler(const Eigen::Vector4d& q) {
     return eulerAngles;
 }
 
-Eigen::Matrix3d Utils::skew(const Eigen::Vector3d& vec) {
+Eigen::Matrix3d ConvexMPC::skew(const Eigen::Vector3d& vec) {
     Eigen::Matrix3d rst;
     rst.setZero();
     rst << 0, -vec(2), vec(1), vec(2), 0, -vec(0), -vec(1), vec(0), 0;
     return rst;
 }
+
+}  // namespace ConvexMPC
