@@ -1,6 +1,7 @@
 #ifndef ROBOT_MODEL_HPP
 #define ROBOT_MODEL_HPP
 
+#include "convex_mpc/params.hpp"
 #include "convex_mpc/robot_state.hpp"
 
 #include <Eigen/Dense>
@@ -17,23 +18,23 @@ public:
                   const Eigen::Vector3d& angular_velocity,
                   const Eigen::Vector3d& linear_velocity);
     void setState(const RobotState& other);
-    void setState(const Eigen::Vector<double, 13>& state);
+    void setState(const Eigen::Vector<double, MPC_STATE_DIM>& state);
     void RobotModel::updateAc();
-    void RobotModel::updateBc(Eigen::Matrix<double, 3, 4> foot_position);
+    void RobotModel::updateBc(const std::array<Eigen::Vector3d, LEG_NUM>& foot_position);
 
-    Eigen::Matrix<double, 13, 13> getAc() const;
-    Eigen::Matrix<double, 13, 12> getBc() const;
-    Eigen::Matrix<double, 13, 13> getAd() const;
-    Eigen::Matrix<double, 13, 12> getBd() const;
+    Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM> getAc() const;
+    Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM> getBc() const;
+    Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM> getAd() const;
+    Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM> getBd() const;
 
     double getDt() const;
     void updateDiscretizedModel();
 
 private:
-    Eigen::Matrix<double, 13, 13> Ac_;
-    Eigen::Matrix<double, 13, 12> Bc_;
-    Eigen::Matrix<double, 13, 13> Ad_;
-    Eigen::Matrix<double, 13, 12> Bd_;
+    Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM> Ac_;
+    Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM> Bc_;
+    Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM> Ad_;
+    Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM> Bd_;
 
     Eigen::Matrix3d inertia_;
     double mass_, mu_, gravity_;
