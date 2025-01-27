@@ -4,23 +4,23 @@
 #include <iostream>
 namespace ConvexMPC {
 void RobotModel::updateAc(const Eigen::Ref<const Eigen::Vector3d>& euler_angle) {
-    Eigen::Matrix3d R_yaw;
-    // clang-format off
-    R_yaw << cos(euler_angle[2]), sin(euler_angle[2]), 0,
-			-sin(euler_angle[2]), cos(euler_angle[2]), 0,
-							   0, 					0, 1;
-    // clang-format on
-
-    Ac_.block<3, 3>(0, 6) = R_yaw;
+    Eigen::Matrix3d rotation_matrix = euler_to_matrix(euler_angle);
+    Ac_.block<3, 3>(0, 6) = rotation_matrix;
     Ac_.block<3, 3>(3, 9) = Eigen::Matrix3d::Identity();
 }
 
-void RobotModel::updateBc(const Eigen::Ref<const Eigen::Matrix3d>& orientatoin_matrix,
+void RobotModel::updateAc(const double& yaw) {
+    Eigen::Matrix3d yaw_matrix = Eigen::Matrix3d::Identity() * Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
+    Ac_.block<3, 3>(0, 6) = yaw_matrix;
+    Ac_.block<3, 3>(3, 9) = Eigen::Matrix3d::Identity();
+}
+
+void RobotModel::updateBc(const Eigen::Ref<const Eigen::Matrix3d>& rotation_matrix,
                           const std::array<Eigen::Vector3d, LEG_NUM>& foot_positions) {
     Eigen::Matrix3d world_inertia;
-    world_inertia = orientatoin_matrix * inertia_ * orientatoin_matrix.transpose();
+    world_inertia = rotation_matrix * inertia_ * rotation_matrix.transpose();
     for (int leg_idx = 0; leg_idx < foot_positions.size(); ++leg_idx) {
-        Bc_.block<3, 3>(6, 3 * leg_idx) = world_inertia.inverse() * ConvexMPC::skew(foot_positions[leg_idx]);
+        Bc_.block<3, 3>(6, 3 * leg_idx) = world_inertia.inverse() * vector_to_skew(foot_positions[leg_idx]);
         Bc_.block<3, 3>(9, 3 * leg_idx) = (1 / mass_) * Eigen::Matrix3d::Identity();
     }
 }

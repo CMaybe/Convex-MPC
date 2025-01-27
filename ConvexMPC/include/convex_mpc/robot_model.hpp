@@ -11,9 +11,9 @@ namespace ConvexMPC {
 class RobotModel {
 public:
     RobotModel() = default;
-    void RobotModel::updateAc(const Eigen::Ref<const Eigen::Vector3d>& euler_angle);
-    void RobotModel::updateBc(const Eigen::Ref<const Eigen::Matrix3d>& orientatoin_matrix,
-                              const std::array<Eigen::Vector3d, LEG_NUM>& foot_position);
+    void updateAc(const double& yaw);
+    void updateAc(const Eigen::Ref<const Eigen::Vector3d>& euler_angle);
+    void updateBc(const Eigen::Ref<const Eigen::Matrix3d>& rotation_matrix, const std::array<Eigen::Vector3d, LEG_NUM>& foot_position);
 
     Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM> getAc() const;
     Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM> getBc() const;
