@@ -4,8 +4,21 @@ namespace ConvexMPC {
 // mpc
 #define MPC_STATE_DIM 13
 #define MPC_INPUT_DIM 12
+#define MPC_CONSTRAINT_DIM 20
+#define MPC_HORIZON 12
 
 #define LEG_NUM 4
 #define LEG_DOF 3
+
+class params {
+public:
+    static constexpr double f_min = 10;
+    static constexpr double f_max = 666;
+    static constexpr double mu = 0.6;
+    static constexpr double mass = 43;
+    static constexpr double dt = 0.1;
+    static constexpr double gravity = -9.81;
+};
+
 }  // namespace ConvexMPC
 #endif  // ROBOT_PARAM_HPP

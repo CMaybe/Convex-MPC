@@ -1,11 +1,9 @@
 #ifndef CONVEX_MPC_HPP
 #define CONVEX_MPC_HPP
 
-#include <chrono>
-#include <vector>
-
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
+#include <qpOASES.hpp>
 
 #include "convex_mpc/params.hpp"
 #include "convex_mpc/robot_model.hpp"
@@ -19,15 +17,16 @@ public:
               const RobotState& robot_desired_state,
               const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& state_weight,
               const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& input_weight);
-    void updateQP();
+    void updateQP(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& x0,
+                  const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& y);
 
     // getter
     const RobotModel& robot_model() const { return robot_model_; }
     const RobotState& robot_state() const { return robot_state_; }
     const RobotState& robot_desired_state() const { return robot_desired_state_; }
 
-    const Eigen::DiagonalMatrix<double, MPC_STATE_DIM * MPC_HORIZON>& Q() const { return Q_; }
-    const Eigen::DiagonalMatrix<double, MPC_INPUT_DIM * MPC_HORIZON>& R() const { return R_; }
+    const Eigen::MatrixXd& Q() const { return Q_; }
+    const Eigen::MatrixXd& R() const { return R_; }
 
     const Eigen::MatrixXd& A_qp() const { return A_qp_; }
     const Eigen::MatrixXd& B_qp() const { return B_qp_; }
@@ -44,8 +43,8 @@ private:
     RobotState robot_state_;
     RobotState robot_desired_state_;
 
-    Eigen::DiagonalMatrix<double, MPC_STATE_DIM * MPC_HORIZON> Q_;
-    Eigen::DiagonalMatrix<double, MPC_INPUT_DIM * MPC_HORIZON> R_;
+    Eigen::MatrixXd Q_;
+    Eigen::MatrixXd R_;
 
     Eigen::MatrixXd A_qp_;
     Eigen::MatrixXd B_qp_;
