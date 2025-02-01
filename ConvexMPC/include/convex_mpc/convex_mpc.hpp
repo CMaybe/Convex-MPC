@@ -17,8 +17,8 @@ public:
     ConvexMPC(const RobotModel& robot_model,
               const RobotState& robot_state,
               const RobotState& robot_desired_state,
-              const Eigen::Ref<const Eigen::VectorXd> state_weight,
-              const Eigen::Ref<const Eigen::VectorXd> input_weight);
+              const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& state_weight,
+              const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& input_weight);
     void updateQP();
 
     // getter
@@ -29,17 +29,15 @@ public:
     const Eigen::DiagonalMatrix<double, MPC_STATE_DIM * MPC_HORIZON>& Q() const { return Q_; }
     const Eigen::DiagonalMatrix<double, MPC_INPUT_DIM * MPC_HORIZON>& R() const { return R_; }
 
-    const Eigen::Matrix<double, MPC_STATE_DIM * MPC_HORIZON, MPC_STATE_DIM>& A_qp() const { return A_qp_; }
-    const Eigen::Matrix<double, MPC_STATE_DIM * MPC_HORIZON, MPC_INPUT_DIM * MPC_HORIZON>& B_qp() const {
-        return B_qp_;
-    }
+    const Eigen::MatrixXd& A_qp() const { return A_qp_; }
+    const Eigen::MatrixXd& B_qp() const { return B_qp_; }
 
     const Eigen::MatrixXd& hessian() const { return hessian_; }
     const Eigen::SparseMatrix<double>& linear_constraints() const { return linear_constraints_; }
 
-    const Eigen::Matrix<double, MPC_INPUT_DIM * MPC_HORIZON, 1>& gradient() const { return gradient_; }
-    const Eigen::Matrix<double, MPC_CONSTRAINT_DIM * MPC_HORIZON, 1>& lb() const { return lb_; }
-    const Eigen::Matrix<double, MPC_CONSTRAINT_DIM * MPC_HORIZON, 1>& ub() const { return ub_; }
+    const Eigen::VectorXd& gradient() const { return gradient_; }
+    const Eigen::VectorXd& lb() const { return lb_; }
+    const Eigen::VectorXd& ub() const { return ub_; }
 
 private:
     RobotModel robot_model_;
@@ -49,17 +47,15 @@ private:
     Eigen::DiagonalMatrix<double, MPC_STATE_DIM * MPC_HORIZON> Q_;
     Eigen::DiagonalMatrix<double, MPC_INPUT_DIM * MPC_HORIZON> R_;
 
-    Eigen::Matrix<double, MPC_STATE_DIM * MPC_HORIZON, MPC_STATE_DIM> A_qp_;
-    Eigen::Matrix<double, MPC_STATE_DIM * MPC_HORIZON, MPC_INPUT_DIM * MPC_HORIZON> B_qp_;
-
-    Eigen::MatrixXd Bd_list = Eigen::MatrixXd::Zero(MPC_STATE_DIM * MPC_HORIZON, MPC_INPUT_DIM);
+    Eigen::MatrixXd A_qp_;
+    Eigen::MatrixXd B_qp_;
 
     Eigen::MatrixXd hessian_;
     Eigen::SparseMatrix<double> linear_constraints_;
 
-    Eigen::Matrix<double, MPC_INPUT_DIM * MPC_HORIZON, 1> gradient_;  // q
-    Eigen::Matrix<double, MPC_CONSTRAINT_DIM * MPC_HORIZON, 1> lb_;   // lower bound constraints
-    Eigen::Matrix<double, MPC_CONSTRAINT_DIM * MPC_HORIZON, 1> ub_;   // upper bound constraints
+    Eigen::VectorXd gradient_;  // q
+    Eigen::VectorXd lb_;        // lower bound constraints
+    Eigen::VectorXd ub_;        // upper bound constraints
 };
 }  // namespace ConvexMPC
 #endif

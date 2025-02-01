@@ -25,12 +25,12 @@ public:
     void updateDiscretizedModel();
 
     // getter
-    const double dt() const { return dt_; };
-    const double mass() const { return mass_; };
-    const double gravity() const { return gravity_; };
-    const double mu() const { return mu_; };
-    const double f_min() const { return f_min_; };
-    const double f_max() const { return f_max_; };
+    double dt() const { return dt_; };
+    double mass() const { return mass_; };
+    double gravity() const { return gravity_; };
+    double mu() const { return mu_; };
+    double f_min() const { return f_min_; };
+    double f_max() const { return f_max_; };
 
     const Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM>& Ac() const { return Ac_; };
     const Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM>& Bc() const { return Bc_; };
@@ -44,7 +44,7 @@ private:
     Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM> Bd_;
 
     Eigen::Matrix3d inertia_;
-    double mass_, mu_, gravity_, dt_, f_min_, f_max_;
+    double mass_, gravity_, mu_, dt_, f_min_, f_max_;
 };
 }  // namespace ConvexMPC
 

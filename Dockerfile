@@ -5,7 +5,7 @@ FROM ubuntu:22.04
 ARG USER_NAME
 ARG GROUP_NAME=drcd
 ARG WORKSPACE_NAME=drcd_ws
-ARG PROJECT_NAME=drcd
+ARG PROJECT_NAME=convex-mpc
 
 # Set non-interactive mode to avoid prompts during installation
 ENV DEBIAN_FRONTEND=noninteractive
