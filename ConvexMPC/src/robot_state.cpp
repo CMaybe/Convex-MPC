@@ -10,7 +10,8 @@ RobotState::RobotState(const RobotState& other)
     mpc_state_ << euler_angle_, position_, angular_velocity_, linear_velocity_, -9.81;
 }
 
-RobotState::RobotState(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& mpc_state) : mpc_state_(mpc_state) {
+RobotState::RobotState(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& mpc_state)
+    : mpc_state_(mpc_state) {
     euler_angle_ = mpc_state_.segment(0, 3);
     position_ = mpc_state_.segment(3, 3);
     angular_velocity_ = mpc_state_.segment(6, 3);
@@ -27,12 +28,5 @@ RobotState::RobotState(const Eigen::Ref<const Eigen::Vector3d>& euler_angle,
     linear_velocity_ = linear_velocity;
     mpc_state_ << euler_angle_, position_, angular_velocity_, linear_velocity_, -9.81;
 }
-
-Eigen::Vector3d RobotState::getPosition() const { return position_; }
-Eigen::Vector3d RobotState::getEulerAngle() const { return euler_angle_; }
-Eigen::Vector3d RobotState::getLinearVelocity() const { return linear_velocity_; }
-Eigen::Vector3d RobotState::getAngularVelocity() const { return angular_velocity_; }
-Eigen::Matrix3d RobotState::getRotationMatrix() const { return euler_to_matrix(euler_angle_); }
-Eigen::Vector<double, MPC_STATE_DIM> RobotState::getControlState() const { return mpc_state_; }
 
 }  // namespace ConvexMPC

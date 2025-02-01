@@ -3,6 +3,19 @@
 
 #include <iostream>
 namespace ConvexMPC {
+
+RobotModel::RobotModel(const double& mass, const double& gravity, const double& mu, const double& dt)
+    : mass_(mass), gravity_(gravity), mu_(mu), dt_(dt) {
+    inertia_.setIdentity();
+}
+
+RobotModel::RobotModel(const Eigen::Ref<const Eigen::Matrix3d>& inertia,
+                       const double& mass,
+                       const double& gravity,
+                       const double& mu,
+                       const double& dt)
+    : inertia_(inertia), mass_(mass), gravity_(gravity), mu_(mu), dt_(dt) {}
+
 void RobotModel::updateAc(const Eigen::Ref<const Eigen::Vector3d>& euler_angle) {
     Eigen::Matrix3d rotation_matrix = euler_to_matrix(euler_angle);
     Ac_.block<3, 3>(0, 6) = rotation_matrix;
@@ -31,9 +44,4 @@ void RobotModel::updateDiscretizedModel() {
     Bd_ = Bc_ * dt_;
 }
 
-Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM> RobotModel::getAc() const { return Ac_; }
-Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM> RobotModel::getAd() const { return Ad_; }
-Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM> RobotModel::getBc() const { return Bc_; }
-Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM> RobotModel::getBd() const { return Bd_; }
-double RobotModel::getDt() const { return dt_; }
 }  // namespace ConvexMPC
