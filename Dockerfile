@@ -80,14 +80,6 @@ RUN git clone --branch v1.1.7 https://github.com/raisimTech/raisimLib.git ${RAIS
 	.. \
 	&& make install 
 
-# Install qpSWIFT 
-RUN git clone https://github.com/qpSWIFT/qpSWIFT /opt/qpSWIFT \
-	&& cd /opt/qpSWIFT \
-	&& cmake \
-	-S . \
-	-B build \
-	&& cmake --build build --target install \
-	&& cd /opt && rm -r /opt/qpSWIFT
 
 # Install qpOASES
 RUN git clone --branch stable/3.2 https://github.com/coin-or/qpOASES.git /opt/qpOASES \
@@ -95,6 +87,7 @@ RUN git clone --branch stable/3.2 https://github.com/coin-or/qpOASES.git /opt/qp
 	&& cmake \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DQPOASES_BUILD_EXAMPLES=OFF \
+	-DCMAKE_POSITION_INDEPENDENT_CODE=ON \
 	.. \
 	&& make install \
 	&& cd /opt && rm -r /opt/qpOASES
