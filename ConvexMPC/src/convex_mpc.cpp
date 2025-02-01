@@ -39,7 +39,7 @@ ConvexMPC::ConvexMPC(const RobotModel& robot_model,
 }
 
 void ConvexMPC::updateQP(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& x0,
-                         const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& y) {
+                         const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& y) {
     Eigen::MatrixXd Ad = robot_model_.Ad();
     Eigen::MatrixXd Bd = robot_model_.Bd();
     for (int mpc_step = 0; mpc_step < MPC_HORIZON; mpc_step++) {

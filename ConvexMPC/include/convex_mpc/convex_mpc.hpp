@@ -18,7 +18,7 @@ public:
               const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& state_weight,
               const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& input_weight);
     void updateQP(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& x0,
-                  const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& y);
+                  const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& y);
 
     // getter
     const RobotModel& robot_model() const { return robot_model_; }
