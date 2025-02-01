@@ -32,7 +32,7 @@ void RobotModel::updateBc(const Eigen::Ref<const Eigen::Matrix3d>& rotation_matr
                           const std::array<Eigen::Vector3d, LEG_NUM>& foot_positions) {
     Eigen::Matrix3d world_inertia;
     world_inertia = rotation_matrix * inertia_ * rotation_matrix.transpose();
-    for (size_t leg_idx = 0; leg_idx < foot_positions.size(); ++leg_idx) {
+    for (size_t leg_idx = 0; leg_idx < foot_positions.size(); leg_idx++) {
         Bc_.block<3, 3>(6, 3 * leg_idx) = world_inertia.inverse() * vector_to_skew(foot_positions[leg_idx]);
         Bc_.block<3, 3>(9, 3 * leg_idx) = (1 / mass_) * Eigen::Matrix3d::Identity();
     }
