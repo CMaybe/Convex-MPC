@@ -42,37 +42,9 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::compute_grf() {
     robot_model_.updateDiscretizedModel();
 
     ConvexMPC mpc_problem(q_weights_, r_weights_, lower_bound_, upper_bound_, constraint_coefficient_);
-    mpc_problem.updateQP(robot_model_.Ad(), robot_model_.Bd(), robot_state_.mpc_state(), mpc_states_d);
+    mpc_problem.update_qp(robot_model_.Ad(), robot_model_.Bd(), robot_state_.mpc_state(), mpc_states_d);
 
-    qpOASES::real_t H[MPC_INPUT_DIM * MPC_HORIZON * MPC_INPUT_DIM * MPC_HORIZON];
-    qpOASES::real_t A[MPC_CONSTRAINT_DIM * MPC_HORIZON * MPC_INPUT_DIM * MPC_HORIZON];
-    qpOASES::real_t g[MPC_INPUT_DIM * MPC_HORIZON];
-    qpOASES::real_t lbA[MPC_CONSTRAINT_DIM * MPC_HORIZON];
-    qpOASES::real_t ubA[MPC_CONSTRAINT_DIM * MPC_HORIZON];
-
-    Eigen::Map<Eigen::Matrix<qpOASES::real_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
-        H, MPC_INPUT_DIM * MPC_HORIZON, MPC_INPUT_DIM * MPC_HORIZON) = mpc_problem.hessian();
-    Eigen::Map<Eigen::Matrix<qpOASES::real_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
-        A, MPC_INPUT_DIM * MPC_HORIZON, MPC_INPUT_DIM * MPC_HORIZON) = mpc_problem.linear_constraints();
-    Eigen::Map<Eigen::Matrix<qpOASES::real_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
-        g, MPC_INPUT_DIM * MPC_HORIZON, 1) = mpc_problem.gradient();
-    Eigen::Map<Eigen::Matrix<qpOASES::real_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
-        lbA, MPC_INPUT_DIM * MPC_HORIZON, 1) = mpc_problem.lb();
-    Eigen::Map<Eigen::Matrix<qpOASES::real_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(
-        ubA, MPC_INPUT_DIM * MPC_HORIZON, 1) = mpc_problem.ub();
-
-    qpOASES::SQProblem qp_solver(MPC_INPUT_DIM * MPC_HORIZON, MPC_INPUT_DIM * MPC_HORIZON);
-
-    qpOASES::Options qp_option;
-    qp_option.setToMPC();
-    qp_solver.setOptions(qp_option);
-
-    qpOASES::int_t nWSR = 100;
-    qpOASES::real_t QPsolution[MPC_INPUT_DIM * MPC_HORIZON];
-    qp_solver.init(H, g, A, NULL, NULL, lbA, ubA, nWSR);
-    qp_solver.getPrimalSolution(QPsolution);
-    Eigen::VectorXd solution = Eigen::Map<Eigen::VectorXd>(QPsolution, MPC_INPUT_DIM * MPC_HORIZON);
-
+    Eigen::VectorXd solution = mpc_problem.solve_qp();
     for (int i = 0; i < LEG_NUM; i++) {
         if (!isnan(solution.segment<3>(i * 3).norm()))
             grf[i] = robot_state_.rotation_matrix().transpose() * solution.segment<3>(i * 3);
