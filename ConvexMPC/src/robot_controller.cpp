@@ -6,11 +6,14 @@ RobotController::RobotController(const RobotModel &robot_model) : robot_model_(r
 std::array<Eigen::Vector3d, LEG_NUM> RobotController::compute_grf() {
     std::array<Eigen::Vector3d, LEG_NUM> grf;
 
-    Eigen::Matrix<double, MPC_STATE_DIM * MPC_HORIZON, 1> mpc_states_d;
+    Eigen::Vector<double, MPC_STATE_DIM * MPC_HORIZON> mpc_states_d;
     Eigen::Vector<double, MPC_STATE_DIM> q_weights;
     Eigen::Vector<double, MPC_INPUT_DIM> r_weights;
+    Eigen::Vector<double, MPC_STATE_DIM> lower_bound;
+    Eigen::Vector<double, MPC_INPUT_DIM> upper_bound;
+    Eigen::Matrix<double, 5, 3> constraint_coefficient;
 
-    ConvexMPC mpc_problem(robot_model_, robot_state_, robot_desired_state_, q_weights, r_weights);
+    ConvexMPC mpc_problem(q_weights, r_weights, lower_bound, upper_bound, constraint_coefficient);
 
     double mpc_dt = robot_model_.dt();
     Eigen::Vector3d euler = robot_desired_state_.euler_angle();
@@ -34,7 +37,7 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::compute_grf() {
     robot_model_.updateBc(robot_state_.rotation_matrix(), robot_state_.foot_pos());
     robot_model_.updateDiscretizedModel();
 
-    mpc_problem.updateQP(robot_state_.mpc_state(), robot_desired_state_.mpc_state());
+    mpc_problem.updateQP(robot_model_.Ad(), robot_model_.Bd(), robot_state_.mpc_state(), robot_desired_state_.mpc_state());
 
     qpOASES::real_t H[MPC_INPUT_DIM * MPC_HORIZON * MPC_INPUT_DIM * MPC_HORIZON];
     qpOASES::real_t A[MPC_CONSTRAINT_DIM * MPC_HORIZON * MPC_INPUT_DIM * MPC_HORIZON];

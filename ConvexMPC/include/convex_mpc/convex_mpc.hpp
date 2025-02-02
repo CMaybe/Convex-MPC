@@ -12,19 +12,17 @@
 namespace ConvexMPC {
 class ConvexMPC {
 public:
-    ConvexMPC(const RobotModel& robot_model,
-              const RobotState& robot_state,
-              const RobotState& robot_desired_state,
-              const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& state_weight,
-              const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& input_weight);
-    void updateQP(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& x0,
+    ConvexMPC(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& state_weight,
+              const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& input_weight,
+              const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& lower_bound,
+              const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& upper_bound,
+              const Eigen::Ref<const Eigen::MatrixXd>& constraint_coefficient);
+    void updateQP(const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM>>& Ad,
+                  const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM>>& Bd,
+                  const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& x0,
                   const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& y);
 
     // getter
-    const RobotModel& robot_model() const { return robot_model_; }
-    const RobotState& robot_state() const { return robot_state_; }
-    const RobotState& robot_desired_state() const { return robot_desired_state_; }
-
     const Eigen::MatrixXd& Q() const { return Q_; }
     const Eigen::MatrixXd& R() const { return R_; }
 
@@ -32,17 +30,13 @@ public:
     const Eigen::MatrixXd& B_qp() const { return B_qp_; }
 
     const Eigen::MatrixXd& hessian() const { return hessian_; }
-    const Eigen::SparseMatrix<double>& linear_constraints() const { return linear_constraints_; }
+    const Eigen::MatrixXd& linear_constraints() const { return linear_constraints_; }
 
     const Eigen::VectorXd& gradient() const { return gradient_; }
     const Eigen::VectorXd& lb() const { return lb_; }
     const Eigen::VectorXd& ub() const { return ub_; }
 
 private:
-    RobotModel robot_model_;
-    RobotState robot_state_;
-    RobotState robot_desired_state_;
-
     Eigen::MatrixXd Q_;
     Eigen::MatrixXd R_;
 
@@ -50,7 +44,7 @@ private:
     Eigen::MatrixXd B_qp_;
 
     Eigen::MatrixXd hessian_;
-    Eigen::SparseMatrix<double> linear_constraints_;
+    Eigen::MatrixXd linear_constraints_;
 
     Eigen::VectorXd gradient_;  // q
     Eigen::VectorXd lb_;        // lower bound constraints
