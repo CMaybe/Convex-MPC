@@ -5,9 +5,7 @@
 
 namespace ConvexMPC {
 
-inline Eigen::Vector3d quaternion_to_euler(const Eigen::Quaterniond& q) {
-    return q.toRotationMatrix().eulerAngles(2, 1, 0);
-}
+inline Eigen::Vector3d quaternion_to_euler(const Eigen::Quaterniond& q) { return q.toRotationMatrix().eulerAngles(2, 1, 0); }
 
 inline Eigen::Quaterniond euler_to_quaternion(const Eigen::Ref<const Eigen::Vector3d>& v) {
     return Eigen::AngleAxisd(v.z(), Eigen::Vector3d::UnitZ()) * Eigen::AngleAxisd(v.y(), Eigen::Vector3d::UnitY()) *

@@ -14,13 +14,14 @@ class ConvexMPC {
 public:
     ConvexMPC(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& state_weight,
               const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& input_weight,
-              const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& lower_bound,
-              const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& upper_bound,
+              const Eigen::Ref<const Eigen::Vector<double, MPC_CONSTRAINT_DIM>>& lower_bound,
+              const Eigen::Ref<const Eigen::Vector<double, MPC_CONSTRAINT_DIM>>& upper_bound,
               const Eigen::Ref<const Eigen::MatrixXd>& constraint_coefficient);
-    void updateQP(const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM>>& Ad,
-                  const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM>>& Bd,
-                  const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& x0,
-                  const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& y);
+    void update_qp(const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM>>& Ad,
+                   const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM>>& Bd,
+                   const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& x0,
+                   const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM * MPC_HORIZON>>& y);
+    const Eigen::VectorXd solve_qp();
 
     // getter
     const Eigen::MatrixXd& Q() const { return Q_; }

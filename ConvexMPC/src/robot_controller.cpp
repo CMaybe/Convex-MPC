@@ -1,19 +1,23 @@
 
 #include "convex_mpc/robot_controller.hpp"
 namespace ConvexMPC {
-RobotController::RobotController(const RobotModel &robot_model) : robot_model_(robot_model) {}
+RobotController::RobotController(const RobotModel &robot_model) : robot_model_(robot_model) {
+    q_weights_ << 80.0, 80.0, 1.0, 0.0, 0.0, 270.0, 1.0, 1.0, 20.0, 20.0, 20.0, 20.0, 0.0;
+    r_weights_ << 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6;
+    constraint_coefficient_.resize(5, 3);
+    // clang-format off
+	constraint_coefficient_ <<
+	1, 0, robot_model.mu(),
+	1, 0, -robot_model.mu(),
+	1, 0, robot_model.mu(),
+	1, 0, -robot_model.mu(),
+	0, 0, 1;
+    // clang-format on	
+}
 
 std::array<Eigen::Vector3d, LEG_NUM> RobotController::compute_grf() {
     std::array<Eigen::Vector3d, LEG_NUM> grf;
-
     Eigen::Vector<double, MPC_STATE_DIM * MPC_HORIZON> mpc_states_d;
-    Eigen::Vector<double, MPC_STATE_DIM> q_weights;
-    Eigen::Vector<double, MPC_INPUT_DIM> r_weights;
-    Eigen::Vector<double, MPC_STATE_DIM> lower_bound;
-    Eigen::Vector<double, MPC_INPUT_DIM> upper_bound;
-    Eigen::Matrix<double, 5, 3> constraint_coefficient;
-
-    ConvexMPC mpc_problem(q_weights, r_weights, lower_bound, upper_bound, constraint_coefficient);
 
     double mpc_dt = robot_model_.dt();
     Eigen::Vector3d euler = robot_desired_state_.euler_angle();
@@ -37,7 +41,8 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::compute_grf() {
     robot_model_.updateBc(robot_state_.rotation_matrix(), robot_state_.foot_pos());
     robot_model_.updateDiscretizedModel();
 
-    mpc_problem.updateQP(robot_model_.Ad(), robot_model_.Bd(), robot_state_.mpc_state(), robot_desired_state_.mpc_state());
+    ConvexMPC mpc_problem(q_weights_, r_weights_, lower_bound_, upper_bound_, constraint_coefficient_);
+    mpc_problem.updateQP(robot_model_.Ad(), robot_model_.Bd(), robot_state_.mpc_state(), mpc_states_d);
 
     qpOASES::real_t H[MPC_INPUT_DIM * MPC_HORIZON * MPC_INPUT_DIM * MPC_HORIZON];
     qpOASES::real_t A[MPC_CONSTRAINT_DIM * MPC_HORIZON * MPC_INPUT_DIM * MPC_HORIZON];

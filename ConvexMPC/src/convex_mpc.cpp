@@ -3,14 +3,14 @@ namespace ConvexMPC {
 
 ConvexMPC::ConvexMPC(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& state_weight,
                      const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& input_weight,
-                     const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& lower_bound,
-                     const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& upper_bound,
+                     const Eigen::Ref<const Eigen::Vector<double, MPC_CONSTRAINT_DIM>>& lower_bound,
+                     const Eigen::Ref<const Eigen::Vector<double, MPC_CONSTRAINT_DIM>>& upper_bound,
                      const Eigen::Ref<const Eigen::MatrixXd>& constraint_coefficient) {
     A_qp_.resize(MPC_STATE_DIM * MPC_HORIZON, MPC_STATE_DIM);
     B_qp_.resize(MPC_STATE_DIM * MPC_HORIZON, MPC_INPUT_DIM * MPC_HORIZON);
     gradient_.resize(MPC_INPUT_DIM * MPC_HORIZON);
-    lb_.resize(MPC_INPUT_DIM * MPC_HORIZON);
-    ub_.resize(MPC_INPUT_DIM * MPC_HORIZON);
+    lb_.resize(MPC_CONSTRAINT_DIM * MPC_HORIZON);
+    ub_.resize(MPC_CONSTRAINT_DIM * MPC_HORIZON);
     Q_.resize(MPC_STATE_DIM * MPC_HORIZON, MPC_STATE_DIM * MPC_HORIZON);
     R_.resize(MPC_INPUT_DIM * MPC_HORIZON, MPC_INPUT_DIM * MPC_HORIZON);
 
@@ -27,19 +27,15 @@ ConvexMPC::ConvexMPC(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>
     }
 
     for (int mpc_step = 0; mpc_step < MPC_HORIZON; mpc_step++) {
-        for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
-            // clang-format off
-            lb_.segment(mpc_step * MPC_CONSTRAINT_DIM + lower_bound.size() * leg_idx,lower_bound.size()) << lower_bound;
-            ub_.segment(mpc_step * MPC_CONSTRAINT_DIM + upper_bound.size() * leg_idx,upper_bound.size()) << upper_bound;
-            // clang-format on
-        }
+        lb_.segment<MPC_CONSTRAINT_DIM>(mpc_step * MPC_CONSTRAINT_DIM) << lower_bound;
+        ub_.segment<MPC_CONSTRAINT_DIM>(mpc_step * MPC_CONSTRAINT_DIM) << upper_bound;
     }
 }
 
-void ConvexMPC::updateQP(const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM>>& Ad,
-                         const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM>>& Bd,
-                         const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& x0,
-                         const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& y) {
+void ConvexMPC::update_qp(const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM>>& Ad,
+                          const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM>>& Bd,
+                          const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& x0,
+                          const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM * MPC_HORIZON>>& y) {
     for (int mpc_step = 0; mpc_step < MPC_HORIZON; mpc_step++) {
         if (mpc_step == 0) {
             A_qp_.block<MPC_STATE_DIM, MPC_STATE_DIM>(MPC_STATE_DIM * mpc_step, 0) = Ad;
