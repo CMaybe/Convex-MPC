@@ -33,9 +33,9 @@ ConvexMPC::ConvexMPC(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>
 }
 
 void ConvexMPC::updateQP(const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM>>& Ad,
-                          const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM>>& Bd,
-                          const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& x0,
-                          const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM * MPC_HORIZON>>& y) {
+                         const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM>>& Bd,
+                         const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& x0,
+                         const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM * MPC_HORIZON>>& y) {
     for (int mpc_step = 0; mpc_step < MPC_HORIZON; mpc_step++) {
         if (mpc_step == 0) {
             A_qp_.block<MPC_STATE_DIM, MPC_STATE_DIM>(MPC_STATE_DIM * mpc_step, 0) = Ad;
