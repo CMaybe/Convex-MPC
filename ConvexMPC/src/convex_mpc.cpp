@@ -32,7 +32,7 @@ ConvexMPC::ConvexMPC(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>
     }
 }
 
-void ConvexMPC::update_qp(const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM>>& Ad,
+void ConvexMPC::updateQP(const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM>>& Ad,
                           const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM>>& Bd,
                           const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& x0,
                           const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM * MPC_HORIZON>>& y) {
@@ -58,7 +58,7 @@ void ConvexMPC::update_qp(const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE
     gradient_ = 2 * B_qp_.transpose() * Q_ * (A_qp_ * x0 - y);
 }
 
-const Eigen::VectorXd ConvexMPC::solve_qp() {
+const Eigen::VectorXd ConvexMPC::solve() {
     qpOASES::real_t H[MPC_INPUT_DIM * MPC_HORIZON * MPC_INPUT_DIM * MPC_HORIZON];
     qpOASES::real_t A[MPC_CONSTRAINT_DIM * MPC_HORIZON * MPC_INPUT_DIM * MPC_HORIZON];
     qpOASES::real_t g[MPC_INPUT_DIM * MPC_HORIZON];
