@@ -18,6 +18,8 @@ public:
     RobotState(const RobotState& other);
     RobotState(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& mpc_state);
 
+    void setContactState(const std::array<bool, LEG_NUM>& contact_state);
+
     // getter
     const Eigen::Vector3d& position() const { return position_; }
     const Eigen::Vector3d& euler_angle() const { return euler_angle_; }
@@ -40,6 +42,7 @@ private:
     Eigen::Quaterniond body_quaternion_;
     Eigen::Vector3d linear_acceleration;
     std::array<Eigen::Vector3d, LEG_NUM> foot_pos_;
+    std::array<bool, LEG_NUM> contact_state_;
 };
 
 }  // namespace ConvexMPC
