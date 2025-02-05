@@ -28,4 +28,6 @@ RobotState::RobotState(const Eigen::Ref<const Eigen::Vector3d>& euler_angle,
     mpc_state_ << euler_angle_, position_, angular_velocity_, linear_velocity_, -9.81;
 }
 
+void RobotState::setContactState(const std::array<bool, LEG_NUM>& contact_state) { contact_state_ = contact_state; }
+
 }  // namespace ConvexMPC
