@@ -15,20 +15,36 @@ public:
                const Eigen::Ref<const Eigen::Vector3d>& position,
                const Eigen::Ref<const Eigen::Vector3d>& angular_velocity,
                const Eigen::Ref<const Eigen::Vector3d>& linear_velocity);
+    RobotState(const Eigen::Ref<const Eigen::Vector3d>& euler_angle,
+               const Eigen::Ref<const Eigen::Vector3d>& position,
+               const Eigen::Ref<const Eigen::Vector3d>& angular_velocity,
+               const Eigen::Ref<const Eigen::Vector3d>& linear_velocity,
+               const std::array<Eigen::Vector3d, LEG_NUM>& foot_position);
     RobotState(const RobotState& other);
     RobotState(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& mpc_state);
 
     void setContactState(const std::array<bool, LEG_NUM>& contact_state);
+    void updateState(const Eigen::Ref<const Eigen::Vector3d>& euler_angle,
+                     const Eigen::Ref<const Eigen::Vector3d>& position,
+                     const Eigen::Ref<const Eigen::Vector3d>& angular_velocity,
+                     const Eigen::Ref<const Eigen::Vector3d>& linear_velocity);
+    void updateFootPosition(const std::array<Eigen::Vector3d, LEG_NUM>& foot_position);
+    void updateFootVelocity(const std::array<Eigen::Vector3d, LEG_NUM>& foot_velocity);
 
     // getter
     const Eigen::Vector3d& position() const { return position_; }
     const Eigen::Vector3d& euler_angle() const { return euler_angle_; }
     const Eigen::Vector3d& linear_velocity() const { return linear_velocity_; }
     const Eigen::Vector3d& angular_velocity() const { return angular_velocity_; }
+
     const Eigen::Vector<double, MPC_STATE_DIM>& mpc_state() const { return mpc_state_; }
-    const Eigen::Vector3d foot_pos(const size_t& leg_idx) const { return foot_pos_[leg_idx]; }
-    const std::array<Eigen::Vector3d, LEG_NUM>& foot_pos() const { return foot_pos_; }
-    Eigen::Matrix3d rotation_matrix() const { return euler_to_matrix(euler_angle_); }
+    const Eigen::Vector3d foot_position(const size_t& leg_idx) const { return foot_position_[leg_idx]; }
+    const std::array<Eigen::Vector3d, LEG_NUM>& foot_position() const { return foot_position_; }
+    const Eigen::Vector3d foot_velocity(const size_t& leg_idx) const { return foot_velocity_[leg_idx]; }
+    const std::array<Eigen::Vector3d, LEG_NUM>& foot_velocity() const { return foot_velocity_; }
+
+    Eigen::Matrix3d rotation_matrix() const { return utils::euler_to_matrix(euler_angle_); }
+    Eigen::Quaterniond body_quaternion() const { return utils::euler_to_quaternion(euler_angle_); }
 
 private:
     // state
@@ -39,9 +55,9 @@ private:
     Eigen::Vector<double, MPC_STATE_DIM> mpc_state_;
 
     //
-    Eigen::Quaterniond body_quaternion_;
     Eigen::Vector3d linear_acceleration;
-    std::array<Eigen::Vector3d, LEG_NUM> foot_pos_;
+    std::array<Eigen::Vector3d, LEG_NUM> foot_position_;
+    std::array<Eigen::Vector3d, LEG_NUM> foot_velocity_;
     std::array<bool, LEG_NUM> contact_state_;
 };
 
