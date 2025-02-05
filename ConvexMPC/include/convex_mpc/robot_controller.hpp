@@ -17,13 +17,21 @@ public:
 
 private:
     RobotModel robot_model_;
-    RobotState robot_state_;
+    RobotState robot_nominal_state_;
 
     Eigen::Vector<double, MPC_STATE_DIM> q_weights_;
     Eigen::Vector<double, MPC_INPUT_DIM> r_weights_;
     Eigen::Vector<double, MPC_CONSTRAINT_DIM> lower_bound_;
     Eigen::Vector<double, MPC_CONSTRAINT_DIM> upper_bound_;
     Eigen::MatrixXd constraint_coefficient_;
+
+    Eigen::Matrix3d Kp_, Kd_;
+
+    std::array<double, LEG_NUM> swing_counter_;
+    std::array<double, LEG_NUM> stance_counter_;
+
+    static constexpr double swing_duration_ = 0.4;
+    static constexpr double stance_duration_ = 0.8;
 };
 }  // namespace ConvexMPC
 
