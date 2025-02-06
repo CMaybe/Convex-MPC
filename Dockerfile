@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y \
 	gnupg2 \
 	sshpass \
 	sudo \
+	tmux \
 	vim \
 	wget \
 	xterm \
