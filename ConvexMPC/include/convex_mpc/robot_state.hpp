@@ -24,6 +24,7 @@ public:
     RobotState(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& mpc_state);
 
     void setContactState(const std::array<bool, LEG_NUM>& contact_state);
+    void setContactState(const size_t& leg_idx, const bool& state);
     void updateState(const Eigen::Ref<const Eigen::Vector3d>& euler_angle,
                      const Eigen::Ref<const Eigen::Vector3d>& position,
                      const Eigen::Ref<const Eigen::Vector3d>& angular_velocity,
@@ -42,6 +43,8 @@ public:
     const std::array<Eigen::Vector3d, LEG_NUM>& foot_position() const { return foot_position_; }
     const Eigen::Vector3d foot_velocity(const size_t& leg_idx) const { return foot_velocity_[leg_idx]; }
     const std::array<Eigen::Vector3d, LEG_NUM>& foot_velocity() const { return foot_velocity_; }
+    const std::array<bool, LEG_NUM>& contact_state() const { return contact_state_; }
+    bool contact_state(const size_t& leg_idx) const { return contact_state_[leg_idx]; }
 
     Eigen::Matrix3d rotation_matrix() const { return utils::euler_to_matrix(euler_angle_); }
     Eigen::Quaterniond body_quaternion() const { return utils::euler_to_quaternion(euler_angle_); }
