@@ -12,11 +12,11 @@ namespace ConvexMPC {
 
 class params {
 public:
-    static constexpr double f_min = 10;
-    static constexpr double f_max = 666;
+    static constexpr double f_min = 0;
+    static constexpr double f_max = 200;
     static constexpr double mu = 0.6;
     static constexpr double mass = 43;
-    static constexpr double dt = 0.1;
+    static constexpr double dt = 0.01;
     static constexpr double gravity = -9.81;
     static constexpr double kp = 150;
     static constexpr double kd = 10;
