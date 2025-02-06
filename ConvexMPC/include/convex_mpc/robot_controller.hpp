@@ -13,11 +13,10 @@
 namespace ConvexMPC {
 class RobotController {
 public:
-    RobotController(const RobotModel& robot_model);
-    RobotController(const RobotModel& robot_model, const RobotState& nominal_state);
-    std::array<Eigen::Vector3d, LEG_NUM> computeGRF(const RobotState& robot_state,
-                                                    const Eigen::Ref<const Eigen::Vector3d>& cmd_vel);
-    std::array<Eigen::Vector3d, LEG_NUM> computeSwingForce(const RobotState& robot_state,
+    RobotController(const RobotModel& robot_model, const double& kp, const double& kd);
+    RobotController(const RobotModel& robot_model, const RobotState& nominal_state, const double& kp, const double& kd);
+    std::array<Eigen::Vector3d, LEG_NUM> computeGRF(RobotState& robot_state, const Eigen::Ref<const Eigen::Vector3d>& cmd_vel);
+    std::array<Eigen::Vector3d, LEG_NUM> computeSwingForce(RobotState& robot_state,
                                                            const Eigen::Ref<const Eigen::Vector3d>& cmd_vel);
 
 private:
@@ -35,8 +34,8 @@ private:
     std::array<double, LEG_NUM> swing_counter_;
     std::array<double, LEG_NUM> stance_counter_;
 
-    static constexpr double swing_duration_ = 0.4;
-    static constexpr double stance_duration_ = 0.8;
+    static constexpr double swing_duration_ = 0.2;
+    static constexpr double stance_duration_ = 0.2;
 };
 }  // namespace ConvexMPC
 

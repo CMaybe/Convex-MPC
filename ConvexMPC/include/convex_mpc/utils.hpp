@@ -28,7 +28,7 @@ inline Eigen::Matrix3d vector_to_skew(const Eigen::Ref<const Eigen::Vector3d>& v
 
 inline double bezier_curve(const double& s, const std::vector<double>& P) {
     std::vector<double> coefficients{1, 4, 6, 4, 1};
-    int order = coefficients.size() - 1;
+    int order = P.size() - 1;
     double result = 0;
     for (int i = 0; i <= order; i++) {
         result += coefficients[i] * std::pow(s, i) * std::pow(1 - s, order - i) * P[i];
