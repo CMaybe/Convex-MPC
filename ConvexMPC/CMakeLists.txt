@@ -37,7 +37,7 @@ target_link_libraries(
 	qpOASES
 )
 
-target_compile_options(${PROJECT_NAME} PRIVATE -fPIC)
+target_compile_options(${PROJECT_NAME} PRIVATE -fPIC -O2 -march=native -DEIGEN_DONT_VECTORIZE)
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
