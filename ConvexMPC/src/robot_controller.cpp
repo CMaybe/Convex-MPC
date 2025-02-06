@@ -5,15 +5,20 @@ namespace ConvexMPC {
 RobotController::RobotController(const RobotModel& robot_model) : robot_model_(robot_model) {
     q_weights_ << 80.0, 80.0, 1.0, 0.0, 0.0, 270.0, 1.0, 1.0, 20.0, 20.0, 20.0, 20.0, 0.0;
     r_weights_ << 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6;
-    constraint_coefficient_.resize(5, 3);
+    constraint_coefficient_.setZero(MPC_CONSTRAINT_DIM, MPC_INPUT_DIM);
+    Eigen::MatrixXd contraints(5, 3);
     // clang-format off
-    constraint_coefficient_ <<
+    contraints <<
     1, 0, robot_model.mu(),
     1, 0, -robot_model.mu(),
     0, 1, robot_model.mu(),
     0, 1, -robot_model.mu(),
     0, 0, 1;
     // clang-format on
+
+    for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
+        constraint_coefficient_.block<5, 3>(5 * leg_idx, 3 * leg_idx) = contraints;
+    }
     Kp_ = Eigen::Matrix3d::Identity() * 100;
     Kd_ = Eigen::Matrix3d::Identity() * 10;
 }
@@ -22,15 +27,19 @@ RobotController::RobotController(const RobotModel& robot_model, const RobotState
     : robot_model_(robot_model), robot_nominal_state_(nominal_state) {
     q_weights_ << 80.0, 80.0, 1.0, 0.0, 0.0, 270.0, 1.0, 1.0, 20.0, 20.0, 20.0, 20.0, 0.0;
     r_weights_ << 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6;
-    constraint_coefficient_.resize(5, 3);
+    constraint_coefficient_.setZero(MPC_CONSTRAINT_DIM, MPC_INPUT_DIM);
+    Eigen::MatrixXd contraints(5, 3);
     // clang-format off
-    constraint_coefficient_ <<
+    contraints <<
     1, 0, robot_model.mu(),
     1, 0, -robot_model.mu(),
     0, 1, robot_model.mu(),
     0, 1, -robot_model.mu(),
     0, 0, 1;
     // clang-format on
+    for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
+        constraint_coefficient_.block<5, 3>(5 * leg_idx, 3 * leg_idx) = contraints;
+    }
 
     Kp_ = Eigen::Matrix3d::Identity() * 100;
     Kd_ = Eigen::Matrix3d::Identity() * 10;
@@ -65,15 +74,14 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(const RobotStat
     robot_model_.updateAc(robot_state.euler_angle());
     robot_model_.updateBc(robot_state.rotation_matrix(), foot_positions_w);
     robot_model_.updateDiscretizedModel();
-    lower_bound_ << 0, -qpOASES::INFTY, 0, -qpOASES::INFTY, robot_model_.f_min();
-    upper_bound_ << qpOASES::INFTY, 0, qpOASES::INFTY, 0, robot_model_.f_max();
+    for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
+        lower_bound_.segment(leg_idx * 5, 5) << 0, -qpOASES::INFTY, 0, -qpOASES::INFTY, robot_model_.f_min();
+        upper_bound_.segment(leg_idx * 5, 5) << qpOASES::INFTY, 0, qpOASES::INFTY, 0, robot_model_.f_max();
+    }
 
     ConvexMPC mpc_problem(q_weights_, r_weights_, lower_bound_, upper_bound_, constraint_coefficient_);
     mpc_problem.updateQP(robot_model_.Ad(), robot_model_.Bd(), robot_state.mpc_state(), mpc_states_d);
     Eigen::VectorXd solution = mpc_problem.solve();
-    std::cout << "\n==========================================\n";
-    std::cout << solution.segment(0, MPC_INPUT_DIM).transpose() << "\n";
-    std::cout << "\n==========================================\n" << std::endl;
 
     for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
         if (!isnan(solution.segment<3>(leg_idx * 3).norm()))

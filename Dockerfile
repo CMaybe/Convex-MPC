@@ -2,7 +2,7 @@
 FROM ubuntu:22.04
 
 
-ARG USER_NAME
+ARG USER_NAME=drcd
 ARG GROUP_NAME=drcd
 ARG WORKSPACE_NAME=drcd_ws
 ARG PROJECT_NAME=convex-mpc
@@ -116,7 +116,7 @@ ENV WORKSPACE ${HOME}/${WORKSPACE_NAME}
 
 RUN echo "export USER=${USER_NAME}" >> ${HOME}/.bashrc \
 	&& echo "export GROUP=${GROUP_NAME}" >> ${HOME}/.bashrc \
-	&& echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${RAISIM_DIR}/raisim/linux/lib" >> ${HOME}/.bashrc \
+	&& echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib:${RAISIM_DIR}/raisim/linux/lib" >> ${HOME}/.bashrc \
 	&& echo "export PYTHONPATH=${PYTHONPATH}:${RAISIM_DIR}/raisim/linux/lib" >> ${HOME}/.bashrc 
 # Shell
 USER ${USER_NAME}

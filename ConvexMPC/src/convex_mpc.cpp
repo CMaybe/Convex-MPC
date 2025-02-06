@@ -7,23 +7,24 @@ ConvexMPC::ConvexMPC(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>
                      const Eigen::Ref<const Eigen::Vector<double, MPC_CONSTRAINT_DIM>>& lower_bound,
                      const Eigen::Ref<const Eigen::Vector<double, MPC_CONSTRAINT_DIM>>& upper_bound,
                      const Eigen::Ref<const Eigen::MatrixXd>& constraint_coefficient) {
-    A_qp_.resize(MPC_STATE_DIM * MPC_HORIZON, MPC_STATE_DIM);
-    B_qp_.resize(MPC_STATE_DIM * MPC_HORIZON, MPC_INPUT_DIM * MPC_HORIZON);
-    gradient_.resize(MPC_INPUT_DIM * MPC_HORIZON);
-    lb_.resize(MPC_CONSTRAINT_DIM * MPC_HORIZON);
-    ub_.resize(MPC_CONSTRAINT_DIM * MPC_HORIZON);
-    L_.resize(MPC_STATE_DIM * MPC_HORIZON, MPC_STATE_DIM * MPC_HORIZON);
-    K_.resize(MPC_INPUT_DIM * MPC_HORIZON, MPC_INPUT_DIM * MPC_HORIZON);
+    A_qp_.setZero(MPC_STATE_DIM * MPC_HORIZON, MPC_STATE_DIM);
+    B_qp_.setZero(MPC_STATE_DIM * MPC_HORIZON, MPC_INPUT_DIM * MPC_HORIZON);
+    lb_.setZero(MPC_CONSTRAINT_DIM * MPC_HORIZON);
+    ub_.setZero(MPC_CONSTRAINT_DIM * MPC_HORIZON);
+    L_.setZero(MPC_STATE_DIM * MPC_HORIZON, MPC_STATE_DIM * MPC_HORIZON);
+    K_.setZero(MPC_INPUT_DIM * MPC_HORIZON, MPC_INPUT_DIM * MPC_HORIZON);
+    gradient_.setZero(MPC_INPUT_DIM * MPC_HORIZON);
+    hessian_.setZero(MPC_INPUT_DIM * MPC_HORIZON, MPC_INPUT_DIM * MPC_HORIZON);
 
     for (int mpc_step = 0; mpc_step < MPC_HORIZON; mpc_step++) {
         L_.block<MPC_STATE_DIM, MPC_STATE_DIM>(mpc_step * MPC_STATE_DIM, mpc_step * MPC_STATE_DIM) = state_weight.asDiagonal();
         K_.block<MPC_INPUT_DIM, MPC_INPUT_DIM>(mpc_step * MPC_INPUT_DIM, mpc_step * MPC_INPUT_DIM) = input_weight.asDiagonal();
     }
-    linear_constraints_.resize(MPC_CONSTRAINT_DIM * MPC_HORIZON, MPC_INPUT_DIM * MPC_HORIZON);
-    int rows = constraint_coefficient.rows();
-    int cols = constraint_coefficient.cols();
-    for (int i = 0; i < LEG_NUM * MPC_HORIZON; i++) {
-        linear_constraints_.block(rows * i, cols * i, rows, cols) = constraint_coefficient;
+    linear_constraints_.setZero(MPC_CONSTRAINT_DIM * MPC_HORIZON, MPC_INPUT_DIM * MPC_HORIZON);
+
+    for (int mpc_step = 0; mpc_step < MPC_HORIZON; mpc_step++) {
+        linear_constraints_.block<MPC_CONSTRAINT_DIM, MPC_INPUT_DIM>(MPC_CONSTRAINT_DIM * mpc_step, MPC_INPUT_DIM * mpc_step) =
+            constraint_coefficient;
     }
 
     for (int mpc_step = 0; mpc_step < MPC_HORIZON; mpc_step++) {
@@ -54,7 +55,6 @@ void ConvexMPC::updateQP(const Eigen::Ref<const Eigen::Matrix<double, MPC_STATE_
         }
     }
 
-    std::cout << Bd << std::endl;
     gradient_ = 2 * B_qp_.transpose() * L_ * (A_qp_ * x0 - y);
     hessian_ = 2 * ((B_qp_.transpose() * L_ * B_qp_) + K_);
 }
@@ -81,7 +81,7 @@ const Eigen::VectorXd ConvexMPC::solve() {
     qp_option.setToMPC();
     qp_option.enableRegularisation = qpOASES::BT_TRUE;
     qp_option.epsRegularisation = 1e-6;
-    // qp_option.printLevel = qpOASES::PL_NONE;
+    qp_option.printLevel = qpOASES::PL_NONE;
     qp_solver.setOptions(qp_option);
 
     qpOASES::int_t nWSR = 1000;
