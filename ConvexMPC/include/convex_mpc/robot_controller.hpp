@@ -9,11 +9,16 @@
 #include "convex_mpc/robot_model.hpp"
 #include "convex_mpc/robot_state.hpp"
 #include "convex_mpc/utils.hpp"
+
 namespace ConvexMPC {
 class RobotController {
 public:
     RobotController(const RobotModel& robot_model);
-    std::array<Eigen::Vector3d, LEG_NUM> computeGRF(const Eigen::Ref<const Eigen::Vector3d>& cmd_vel);
+    RobotController(const RobotModel& robot_model, const RobotState& nominal_state);
+    std::array<Eigen::Vector3d, LEG_NUM> computeGRF(const RobotState& robot_state,
+                                                    const Eigen::Ref<const Eigen::Vector3d>& cmd_vel);
+    std::array<Eigen::Vector3d, LEG_NUM> computeSwingForce(const RobotState& robot_state,
+                                                           const Eigen::Ref<const Eigen::Vector3d>& cmd_vel);
 
 private:
     RobotModel robot_model_;
