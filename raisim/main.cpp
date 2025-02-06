@@ -19,7 +19,7 @@ int main() {
     std::string leg_list[4] = {"FR_foot_fixed", "FL_foot_fixed", "RR_foot_fixed", "RL_foot_fixed"};
 
     RobotModel robot_model(laikago->getInertia()[0].e(),
-                           laikago->getMass()[0],
+                           laikago->getMass()[0] * 1.4,
                            params::gravity,
                            params::mu,
                            params::dt,
@@ -33,8 +33,8 @@ int main() {
     Eigen::VectorXd jointNominalConfig(laikago->getGeneralizedCoordinateDim()), jointVelocityTarget(laikago->getDOF());
     Eigen::VectorXd current_jointVelocity(laikago->getDOF()), current_jointConfig(laikago->getGeneralizedCoordinateDim());
     Eigen::VectorXd jointPgain(laikago->getDOF()), jointDgain(laikago->getDOF()), jointForce(laikago->getDOF());
-    std::array<Eigen::Vector3d, LEG_NUM> foot_position;
-    std::array<Eigen::Vector3d, LEG_NUM> grf;
+    std::array<Eigen::Vector3d, LEG_NUM> foot_position, foot_velocity;
+    std::array<Eigen::Vector3d, LEG_NUM> grf, feedforward;
 
     jointPgain.setZero();
     jointDgain.setZero();
@@ -66,12 +66,15 @@ int main() {
     }
 
     RobotState robot_state(euler, position, angular_velocity, linear_velocity, foot_position);
-    RobotController robot_controller(robot_model, robot_state);
+    RobotController robot_controller(robot_model, robot_state, 100, 10);
+    robot_state.setContactState({true, false, false, true});
 
     /// mpc
 
     laikago->setGeneralizedCoordinate(jointNominalConfig);
+    RS_TIMED_LOOP(int(world.getTimeStep() * 100 * 1e6))
     for (int i = 0; i < 10000000; i++) {
+        RS_TIMED_LOOP(int(world.getTimeStep() * 1e6))
         current_jointConfig = laikago->getGeneralizedCoordinate().e();
         current_jointVelocity = laikago->getGeneralizedVelocity().e();
         Eigen::Vector3d position = current_jointConfig.segment(0, 3);
@@ -82,27 +85,29 @@ int main() {
         robot_state.updateState(euler, position, angular_velocity, linear_velocity);
 
         std::array<Eigen::Matrix3d, LEG_NUM> foot_jacobian;
-        cmd_vel = Eigen::Vector3d(0, 0, 0);
+        cmd_vel = Eigen::Vector3d(0.5, 0, 0);
 
         for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
             raisim::Vec<3> foot_pos;
-            raisim::Vec<3> body_pos;
-            laikago->getBasePosition(body_pos);
-            laikago->getFramePosition(leg_list[leg_idx], foot_pos);
-            foot_position[leg_idx] = foot_pos.e() - body_pos.e();
-        }
-        robot_state.updateFootPosition(foot_position);
-        grf = robot_controller.computeGRF(robot_state, cmd_vel);
-        for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
             Eigen::MatrixXd full_jacobian(3, laikago->getDOF());
+            laikago->getFramePosition(leg_list[leg_idx], foot_pos);
             laikago->getDenseFrameJacobian(leg_list[leg_idx], full_jacobian);
             foot_jacobian[leg_idx] = full_jacobian.block(0, 6 + 3 * leg_idx, 3, 3);
-            grf[leg_idx] = -foot_jacobian[leg_idx].transpose() * 2.3 * grf[leg_idx];
+            foot_position[leg_idx] = foot_pos.e() - position;
+            foot_velocity[leg_idx] = foot_jacobian[leg_idx] * current_jointVelocity.segment(6 + 3 * leg_idx, 3);
         }
-        jointForce << Eigen::VectorXd::Zero(6), grf[0], grf[1], grf[2], grf[3];
+        robot_state.updateFootPosition(foot_position);
+        robot_state.updateFootVelocity(foot_velocity);
+        grf = robot_controller.computeGRF(robot_state, cmd_vel);
+        feedforward = robot_controller.computeSwingForce(robot_state, cmd_vel);
+        for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
+            grf[leg_idx] = -foot_jacobian[leg_idx].transpose() * grf[leg_idx];
+            feedforward[leg_idx] = foot_jacobian[leg_idx].transpose() * feedforward[leg_idx];
+        }
+        jointForce << Eigen::VectorXd::Zero(6), grf[0] + feedforward[0], grf[1] + feedforward[1], grf[2] + feedforward[2],
+            grf[3] + feedforward[3];
         laikago->setGeneralizedForce(jointForce);
 
-        RS_TIMED_LOOP(int(world.getTimeStep() * 1e6))
         server.integrateWorldThreadSafe();
     }
     server.killServer();
