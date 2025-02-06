@@ -11,17 +11,20 @@ namespace ConvexMPC {
 class RobotModel {
 public:
     RobotModel() = delete;
-    RobotModel(const double& mass, const double& gravity, const double& mu, const double& dt);
+    RobotModel(
+        const double& mass, const double& gravity, const double& mu, const double& dt, const double& f_min, const double& f_max);
     RobotModel(const Eigen::Ref<const Eigen::Matrix3d>& inertia,
                const double& mass,
                const double& gravity,
                const double& mu,
-               const double& dt);
+               const double& dt,
+               const double& f_min,
+               const double& f_max);
 
     void updateAc(const double& yaw);
     void updateAc(const Eigen::Ref<const Eigen::Vector3d>& euler_angle);
     void updateBc(const Eigen::Ref<const Eigen::Matrix3d>& rotation_matrix,
-                  const std::array<Eigen::Vector3d, LEG_NUM>& foot_position);
+                  const std::array<Eigen::Vector3d, LEG_NUM>& foot_positions_w);
     void updateDiscretizedModel();
 
     // getter

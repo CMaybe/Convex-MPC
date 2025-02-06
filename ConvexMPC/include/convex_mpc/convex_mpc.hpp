@@ -24,8 +24,8 @@ public:
     const Eigen::VectorXd solve();
 
     // getter
-    const Eigen::MatrixXd& Q() const { return Q_; }
-    const Eigen::MatrixXd& R() const { return R_; }
+    const Eigen::MatrixXd& L() const { return L_; }
+    const Eigen::MatrixXd& K() const { return K_; }
 
     const Eigen::MatrixXd& A_qp() const { return A_qp_; }
     const Eigen::MatrixXd& B_qp() const { return B_qp_; }
@@ -38,8 +38,8 @@ public:
     const Eigen::VectorXd& ub() const { return ub_; }
 
 private:
-    Eigen::MatrixXd Q_;
-    Eigen::MatrixXd R_;
+    Eigen::MatrixXd L_;
+    Eigen::MatrixXd K_;
 
     Eigen::MatrixXd A_qp_;
     Eigen::MatrixXd B_qp_;
