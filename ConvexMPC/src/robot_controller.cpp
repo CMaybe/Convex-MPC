@@ -65,9 +65,9 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
         // clang-format off
         mpc_states_d.segment(mpc_step * MPC_STATE_DIM, MPC_STATE_DIM) << 
         euler[0], euler[1], euler[2] + cmd_vel_b[2] * mpc_dt * (mpc_step + 1),
-        position[0] + linear_velocity_w[0] * mpc_dt * (mpc_step + 1), position[1] + linear_velocity_w[1] * mpc_dt * (mpc_step + 1), z, 
+        position[0] + linear_velocity_w[0] * mpc_dt * (mpc_step + 1), position[1] + linear_velocity_w[1] * mpc_dt * (mpc_step + 1), z-(1/2)*(-9.81)*(mpc_dt * mpc_step*mpc_dt * mpc_step ), 
         0, 0, cmd_vel_b[2], 
-        linear_velocity_w[0], linear_velocity_w[1], 0, 
+        linear_velocity_w[0], linear_velocity_w[1], -(1/2)*(-9.81)*(mpc_dt * mpc_step), 
         robot_model_.gravity();
         // clang-format on
     }
@@ -99,6 +99,7 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
     Eigen::VectorXd solution = mpc_problem.solve();
 
     for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
+        grf[leg_idx].setZero();
         if (!isnan(solution.segment<3>(leg_idx * 3).norm()))
             grf[leg_idx] = robot_state.rotation_matrix().transpose() * solution.segment<3>(leg_idx * 3);
     }
@@ -118,6 +119,7 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeSwingForce(RobotSta
     Eigen::Vector3d body_position_w = robot_state.position();
 
     for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
+        result[leg_idx].setZero();
         Eigen::Vector3d hip_position_b = robot_nominal_state_.foot_position(leg_idx);
         Eigen::Vector3d p_ref = body_position_w + hip_position_b;
         p_ref[2] = 0;
