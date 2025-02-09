@@ -23,8 +23,8 @@ public:
     RobotState(const RobotState& other);
     RobotState(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& mpc_state);
 
-    void setContactState(const std::array<bool, LEG_NUM>& contact_state);
-    void setContactState(const size_t& leg_idx, const bool& state);
+    void updateContactState(const std::array<bool, LEG_NUM>& contact_state);
+    void updateContactState(const size_t& leg_idx, const bool& state);
     void updateState(const Eigen::Ref<const Eigen::Vector3d>& euler_angle,
                      const Eigen::Ref<const Eigen::Vector3d>& position,
                      const Eigen::Ref<const Eigen::Vector3d>& angular_velocity,

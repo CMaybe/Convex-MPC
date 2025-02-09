@@ -53,8 +53,8 @@ void RobotState::updateState(const Eigen::Ref<const Eigen::Vector3d>& euler_angl
     mpc_state_ << euler_angle_, position_, angular_velocity_, linear_velocity_, -9.81;
 }
 
-void RobotState::setContactState(const std::array<bool, LEG_NUM>& contact_state) { contact_state_ = contact_state; }
-void RobotState::setContactState(const size_t& leg_idx, const bool& state) { contact_state_[leg_idx] = state; }
+void RobotState::updateContactState(const std::array<bool, LEG_NUM>& contact_state) { contact_state_ = contact_state; }
+void RobotState::updateContactState(const size_t& leg_idx, const bool& state) { contact_state_[leg_idx] = state; }
 void RobotState::updateFootPosition(const std::array<Eigen::Vector3d, LEG_NUM>& foot_position) { foot_position_ = foot_position; }
 void RobotState::updateFootVelocity(const std::array<Eigen::Vector3d, LEG_NUM>& foot_velocity) { foot_velocity_ = foot_velocity; }
 

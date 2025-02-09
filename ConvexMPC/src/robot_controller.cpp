@@ -2,9 +2,12 @@
 
 #include <iostream>
 namespace ConvexMPC {
-RobotController::RobotController(const RobotModel& robot_model, const double& kp, const double& kd) : robot_model_(robot_model) {
-    q_weights_ << 80.0, 80.0, 1.0, 0.0, 0.0, 270.0, 1.0, 1.0, 20.0, 20.0, 20.0, 20.0, 0.0;
-    r_weights_ << 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6;
+RobotController::RobotController(const RobotModel& robot_model,
+                                 const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& q_weights,
+                                 const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& r_weights,
+                                 const double& kp,
+                                 const double& kd)
+    : robot_model_(robot_model), q_weights_(q_weights), r_weights_(r_weights) {
     constraint_coefficient_.setZero(MPC_CONSTRAINT_DIM, MPC_INPUT_DIM);
     Eigen::MatrixXd contraints(5, 3);
     // clang-format off
@@ -25,11 +28,11 @@ RobotController::RobotController(const RobotModel& robot_model, const double& kp
 
 RobotController::RobotController(const RobotModel& robot_model,
                                  const RobotState& nominal_state,
+                                 const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& q_weights,
+                                 const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& r_weights,
                                  const double& kp,
                                  const double& kd)
-    : robot_model_(robot_model), robot_nominal_state_(nominal_state) {
-    q_weights_ << 80.0, 80.0, 1.0, 0.0, 0.0, 270.0, 1.0, 1.0, 20.0, 20.0, 20.0, 20.0, 0.0;
-    r_weights_ << 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6;
+    : robot_model_(robot_model), robot_nominal_state_(nominal_state), q_weights_(q_weights), r_weights_(r_weights) {
     constraint_coefficient_.setZero(MPC_CONSTRAINT_DIM, MPC_INPUT_DIM);
     Eigen::MatrixXd contraints(5, 3);
     // clang-format off
@@ -64,10 +67,23 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
     for (int mpc_step = 0; mpc_step < MPC_HORIZON; mpc_step++) {
         // clang-format off
         mpc_states_d.segment(mpc_step * MPC_STATE_DIM, MPC_STATE_DIM) << 
-        euler[0], euler[1], euler[2] + cmd_vel_b[2] * mpc_dt * (mpc_step + 1),
-        position[0] + linear_velocity_w[0] * mpc_dt * (mpc_step + 1), position[1] + linear_velocity_w[1] * mpc_dt * (mpc_step + 1), z-(1/2)*(-9.81)*(mpc_dt * mpc_step*mpc_dt * mpc_step ), 
-        0, 0, cmd_vel_b[2], 
-        linear_velocity_w[0], linear_velocity_w[1], -(1/2)*(-9.81)*(mpc_dt * mpc_step), 
+		// orientation
+        euler[0], 
+		euler[1], 
+		euler[2] + cmd_vel_b[2] * mpc_dt * (mpc_step+1),
+		// position
+        position[0] + linear_velocity_w[0] * mpc_dt * (mpc_step+1),
+		position[1] + linear_velocity_w[1] * mpc_dt * (mpc_step+1), 
+		z,
+		// angular velocity 
+        0,
+		0,
+		cmd_vel_b[2],
+		// linear velocity 
+        linear_velocity_w[0],
+		linear_velocity_w[1],
+		0, 
+		// graivity
         robot_model_.gravity();
         // clang-format on
     }
@@ -90,7 +106,7 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
 
         if (stance_counter_[leg_idx] >= stance_duration_) {
             stance_counter_[leg_idx] = 0;
-            robot_state.setContactState(leg_idx, false);
+            robot_state.updateContactState(leg_idx, false);
         }
     }
 
@@ -152,7 +168,7 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeSwingForce(RobotSta
         }
         if (swing_counter_[leg_idx] >= swing_duration_) {
             swing_counter_[leg_idx] = 0;
-            robot_state.setContactState(leg_idx, true);
+            robot_state.updateContactState(leg_idx, true);
         }
 
         result[leg_idx] =
