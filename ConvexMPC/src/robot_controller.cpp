@@ -68,9 +68,7 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
         // clang-format off
         mpc_states_d.segment(mpc_step * MPC_STATE_DIM, MPC_STATE_DIM) << 
 		// orientation
-        euler[0], 
-		euler[1], 
-		euler[2] + cmd_vel_b[2] * mpc_dt * (mpc_step+1),
+        robot_nominal_state_.euler_angle(),
 		// position
         position[0] + linear_velocity_w[0] * mpc_dt * (mpc_step+1),
 		position[1] + linear_velocity_w[1] * mpc_dt * (mpc_step+1), 
@@ -96,7 +94,7 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
     robot_model_.updateDiscretizedModel();
     for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
         if (robot_state.contact_state(leg_idx) == true) {
-            stance_counter_[leg_idx] += 0.01;
+            stance_counter_[leg_idx] += mpc_dt;
             lower_bound_.segment(leg_idx * 5, 5) << 0, -qpOASES::INFTY, 0, -qpOASES::INFTY, robot_model_.f_min();
             upper_bound_.segment(leg_idx * 5, 5) << qpOASES::INFTY, 0, qpOASES::INFTY, 0, robot_model_.f_max();
         } else {
@@ -139,29 +137,18 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeSwingForce(RobotSta
         Eigen::Vector3d hip_position_b = robot_nominal_state_.foot_position(leg_idx);
         Eigen::Vector3d p_ref = body_position_w + hip_position_b;
         p_ref[2] = 0;
-        foot_position_d[leg_idx] = p_ref + cmd_vel_w * stance_duration_ / 2;
+        foot_position_d[leg_idx] = p_ref + cmd_vel_w * stance_duration_ / 4;
         Eigen::Vector3d foot_position_w = robot_state.foot_position(leg_idx) + body_position_w;
         if (robot_state.contact_state(leg_idx) == false) {
-            swing_counter_[leg_idx] += 0.01;
+            swing_counter_[leg_idx] += 0.001;
             double s = swing_counter_[leg_idx] / swing_duration_;
             for (int i = 0; i < 3; i++) {
-                if (i == 2) {
-                    foot_position_d[leg_idx](i) = utils::bezier_curve(s,
-                                                                      {
-                                                                          0,
-                                                                          0,
-                                                                          0.3,
-                                                                          0,
-                                                                          0,
-                                                                      });
-                } else {
-                    foot_position_d[leg_idx](i) = utils::bezier_curve(s,
-                                                                      {foot_position_w(i),
-                                                                       foot_position_w(i),
-                                                                       foot_position_d[leg_idx](i),
-                                                                       foot_position_d[leg_idx](i),
-                                                                       foot_position_d[leg_idx](i)});
-                }
+                foot_position_d[leg_idx](i) = utils::bezier_curve(s,
+                                                                  {foot_position_w(i),
+                                                                   foot_position_w(i),
+                                                                   foot_position_d[leg_idx](i),
+                                                                   foot_position_d[leg_idx](i),
+                                                                   foot_position_d[leg_idx](i)});
             }
             // Todo
             // Add disired foot velocity
