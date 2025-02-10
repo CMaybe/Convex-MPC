@@ -7,8 +7,36 @@ namespace ConvexMPC {
 
 namespace utils {
 inline Eigen::Vector3d quaternion_to_euler(const Eigen::Quaterniond& q) { return q.toRotationMatrix().eulerAngles(2, 1, 0); }
-inline Eigen::Vector3d quaternion_to_euler(const Eigen::Ref<const Eigen::Vector4d>& v) {
-    return Eigen::Quaterniond(v).toRotationMatrix().eulerAngles(2, 1, 0);
+inline Eigen::Vector3d quaternion_to_euler(const Eigen::Ref<const Eigen::Vector4d>& q) {
+    Eigen::Vector3d eulerAngles;  // [roll, pitch, yaw]
+
+    // Normalize the quaternion to ensure valid rotation
+    double norm = std::sqrt(q(0) * q(0) + q(1) * q(1) + q(2) * q(2) + q(3) * q(3));
+    double qw = q(0) / norm;
+    double qx = q(1) / norm;
+    double qy = q(2) / norm;
+    double qz = q(3) / norm;
+
+    // Roll (X-axis rotation)
+    double sinr_cosp = 2 * (qw * qx + qy * qz);
+    double cosr_cosp = 1 - 2 * (qx * qx + qy * qy);
+    eulerAngles[0] = std::atan2(sinr_cosp, cosr_cosp);
+
+    // Pitch (Y-axis rotation)
+    double sinp = 2 * (qw * qy - qz * qx);
+    if (std::abs(sinp) >= 1) {
+        // Use 90 degrees if out of range (for numerical stability)
+        eulerAngles[1] = std::copysign(M_PI / 2, sinp);
+    } else {
+        eulerAngles[1] = std::asin(sinp);
+    }
+
+    // Yaw (Z-axis rotation)
+    double siny_cosp = 2 * (qw * qz + qx * qy);
+    double cosy_cosp = 1 - 2 * (qy * qy + qz * qz);
+    eulerAngles[2] = std::atan2(siny_cosp, cosy_cosp);
+
+    return eulerAngles;  // Returns [roll, pitch, yaw]
 }
 
 inline Eigen::Quaterniond euler_to_quaternion(const Eigen::Ref<const Eigen::Vector3d>& v) {
