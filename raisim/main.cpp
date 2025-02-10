@@ -10,33 +10,38 @@ using namespace ConvexMPC;
 
 int main() {
     raisim::World world;
-    world.setTimeStep(0.001);
+
+    double mpc_dt = 0.05;
+    double time_step = 0.001;
+    world.setTimeStep(time_step);
     auto ground = world.addGround();
 
-    raisim::ArticulatedSystem* laikago = world.addArticulatedSystem("./rsc/laikago/laikago.urdf");
+    raisim::ArticulatedSystem* a1 = world.addArticulatedSystem("./rsc/a1/a1.urdf");
     std::string leg_list[4] = {"FR_foot_fixed", "FL_foot_fixed", "RR_foot_fixed", "RL_foot_fixed"};
     Eigen::Matrix3d inertia;
     inertia.setZero();
-    inertia(0, 0) = 0.073348887;
-    inertia(1, 1) = 0.250684593;
-    inertia(2, 2) = 0.254469458;
+    // clang-format off
+    inertia <<  0.0158533, 0.0, 0.0, 
+				0.0, 0.0377999, 0.0, 
+				0.0, 0.0, 0.0456542;
+
+    // clang-format on
     RobotModel robot_model(inertia,
-                           13.733,  // laikago->getMass()[0],
+                           12,
                            params::gravity,
-                           params::mu,
-                           0.05,  // params::dt,
-                           4,     // params::f_min,
-                           666);
+                           0.7,
+                           mpc_dt,  // params::dt,
+                           0,       // params::f_min,
+                           180);    // params::f_max
     // params::f_max);
     Eigen::Vector3d cmd_vel;
 
     std::atomic<bool> control_execute{};
     control_execute.store(true, std::memory_order_release);
 
-    Eigen::VectorXd jointNominalConfig(laikago->getGeneralizedCoordinateDim()), jointVelocityTarget(laikago->getDOF());
-    Eigen::VectorXd current_jointVelocity(laikago->getDOF()), current_jointConfig(laikago->getGeneralizedCoordinateDim());
-    Eigen::VectorXd jointPgain(laikago->getDOF()), jointDgain(laikago->getDOF()), jointForce(laikago->getDOF()),
-        dynamics_torque(laikago->getDOF());
+    Eigen::VectorXd jointNominalConfig(a1->getGeneralizedCoordinateDim()), jointVelocityTarget(a1->getDOF());
+    Eigen::VectorXd current_jointVelocity(a1->getDOF()), current_jointConfig(a1->getGeneralizedCoordinateDim());
+    Eigen::VectorXd jointPgain(a1->getDOF()), jointDgain(a1->getDOF()), jointForce(a1->getDOF()), dynamics_torque(a1->getDOF());
     std::array<Eigen::Vector3d, LEG_NUM> foot_position_b, foot_velocity;
     std::array<Eigen::Vector3d, LEG_NUM> grf, feedback, feedforward;
     std::array<Eigen::Vector3d, LEG_NUM> grf_torque, feedback_torque, feedforward_torque;
@@ -47,61 +52,61 @@ int main() {
     jointPgain.setZero();
     jointDgain.setZero();
     jointVelocityTarget.setZero();
-    jointNominalConfig << 0, 0, 0.49, 1, 0.0, 0.0, 0.0, 0.0, 0.5, -1, 0, 0.5, -1, 0.00, 0.5, -1, 0, 0.5, -0.7;
-    q_weights << 5., 5., 50., 10., 10., 50., 0.01, 0.01, 0.2, 0.2, 0.2, 0.2, 0.;
-    r_weights << 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5, 1e-5;
+    jointNominalConfig << 0, 0, 0.35, 1, 0.0, 0.0, 0.0, 0.0, 0.5, -1, 0, 0.5, -1, 0.0, 0.5, -1, 0, 0.5, -1;
+    q_weights << 20, 10, 1, 0, 0, 420, 0.05, 0.05, 0.05, 30, 30, 10, 0.;
+    r_weights << 1e-7, 1e-7, 1e-7, 1e-7, 1e-7, 1e-7, 1e-7, 1e-7, 1e-7, 1e-7, 1e-7, 1e-7;
 
-    laikago->setControlMode(raisim::ControlMode::PD_PLUS_FEEDFORWARD_TORQUE);
-    laikago->setPdTarget(jointNominalConfig, jointVelocityTarget);
-    laikago->setName("laikago");
+    a1->setControlMode(raisim::ControlMode::PD_PLUS_FEEDFORWARD_TORQUE);
+    a1->setPdTarget(jointNominalConfig, jointVelocityTarget);
+    a1->setName("a1");
 
-    laikago->setGeneralizedCoordinate(jointNominalConfig);
-    laikago->setPdGains(jointPgain, jointDgain);
+    a1->setGeneralizedCoordinate(jointNominalConfig);
+    a1->setPdGains(jointPgain, jointDgain);
 
     /// launch raisim server
     raisim::RaisimServer server(&world);
-    server.focusOn(laikago);
+    server.focusOn(a1);
     server.launchServer();
 
-    current_jointConfig = laikago->getGeneralizedCoordinate().e();
+    current_jointConfig = a1->getGeneralizedCoordinate().e();
     body_position = current_jointConfig.segment(0, 3);
     quat = current_jointConfig.segment(3, 4);
-    euler = {0, 0, 0};  // utils::quaternion_to_euler(quat);
+    euler = utils::quaternion_to_euler(quat);
     linear_velocity = current_jointVelocity.segment(0, 3);
     angular_velocity = current_jointVelocity.segment(3, 3);
     for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
         raisim::Vec<3> foot_position_w;
-        laikago->getFramePosition(leg_list[leg_idx], foot_position_w);
+        a1->getFramePosition(leg_list[leg_idx], foot_position_w);
         foot_position_b[leg_idx] = foot_position_w.e() - body_position;
     }
 
     RobotState robot_state(euler, body_position, angular_velocity, linear_velocity, foot_position_b);
-    RobotController robot_controller(robot_model, robot_state, q_weights, r_weights, 2000, 300);
-    robot_state.updateContactState({true, true, false, false});
+    RobotController robot_controller(robot_model, robot_state, q_weights, r_weights, 400, 20);
+    robot_state.updateContactState({true, false, false, true});
 
     /// mpc
-    laikago->setGeneralizedCoordinate(jointNominalConfig);
+    a1->setGeneralizedCoordinate(jointNominalConfig);
     for (int i = 0; i < 10000000; i++) {
-        RS_TIMED_LOOP(int(world.getTimeStep() * 1e6))
-        current_jointConfig = laikago->getGeneralizedCoordinate().e();
-        current_jointVelocity = laikago->getGeneralizedVelocity().e();
+        RS_TIMED_LOOP(int(world.getTimeStep() * 10 * 1e6))
+        current_jointConfig = a1->getGeneralizedCoordinate().e();
+        current_jointVelocity = a1->getGeneralizedVelocity().e();
         body_position = current_jointConfig.segment(0, 3);
         quat = current_jointConfig.segment(3, 4);
         euler = utils::quaternion_to_euler(quat);
-        std::cout << euler.transpose() << std::endl;
         linear_velocity = current_jointVelocity.segment(0, 3);
         angular_velocity = current_jointVelocity.segment(3, 3);
-        dynamics_torque = laikago->getNonlinearities({0, 0, -9.81}).e();
+        dynamics_torque = a1->getNonlinearities({0, 0, -9.81}).e();
         robot_state.updateState(euler, body_position, angular_velocity, linear_velocity);
 
         std::array<Eigen::Matrix3d, LEG_NUM> foot_jacobian;
-        cmd_vel = Eigen::Vector3d(0.3, 0, 0);
+        cmd_vel = Eigen::Vector3d(0.0, 0, 0);
 
         for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
             raisim::Vec<3> foot_position_w;
-            Eigen::MatrixXd full_jacobian(3, laikago->getDOF());
-            laikago->getFramePosition(leg_list[leg_idx], foot_position_w);
-            laikago->getDenseFrameJacobian(leg_list[leg_idx], full_jacobian);
+            Eigen::MatrixXd full_jacobian(3, a1->getDOF());
+            a1->getFramePosition(leg_list[leg_idx], foot_position_w);
+            a1->getDenseFrameJacobian(leg_list[leg_idx], full_jacobian);
+            foot_position_w[2] -= 0.02;  // foot size;
             foot_jacobian[leg_idx] = full_jacobian.block(0, 6 + 3 * leg_idx, 3, 3);
             foot_position_b[leg_idx] = foot_position_w.e() - body_position;
             foot_velocity[leg_idx] = foot_jacobian[leg_idx] * current_jointVelocity.segment(6 + 3 * leg_idx, 3);
@@ -109,14 +114,12 @@ int main() {
 
         robot_state.updateFootPosition(foot_position_b);
         robot_state.updateFootVelocity(foot_velocity);
-        if (i % 50 == 0) {
+        if (std::fmod(i, (mpc_dt / time_step)) == 0) {
             grf = robot_controller.computeGRF(robot_state, cmd_vel);
-            for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
-                grf_torque[leg_idx] = -foot_jacobian[leg_idx].transpose() * grf[leg_idx];
-            }
         }
         feedback = robot_controller.computeSwingForce(robot_state, cmd_vel);
         for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
+            grf_torque[leg_idx] = -foot_jacobian[leg_idx].transpose() * grf[leg_idx];
             feedforward[leg_idx] = dynamics_torque.segment(6 + 3 * leg_idx, 3);
             feedback_torque[leg_idx] = foot_jacobian[leg_idx].transpose() * feedback[leg_idx];
         }
@@ -127,7 +130,7 @@ int main() {
 						grf_torque[2] + feedback_torque[2] + feedforward[2],
 						grf_torque[3] + feedback_torque[3] + feedforward[3];
         // clang-format on
-        laikago->setGeneralizedForce(jointForce);
+        a1->setGeneralizedForce(jointForce);
 
         server.integrateWorldThreadSafe();
     }
