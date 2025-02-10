@@ -74,15 +74,14 @@ int main() {
     euler = utils::quaternion_to_euler(quat);
     linear_velocity = current_jointVelocity.segment(0, 3);
     angular_velocity = current_jointVelocity.segment(3, 3);
-    for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
-        raisim::Vec<3> foot_position_w;
-        a1->getFramePosition(leg_list[leg_idx], foot_position_w);
-        foot_position_b[leg_idx] = foot_position_w.e() - body_position;
-    }
+    foot_position_b[0] << 0.17, -0.15, -0.35;
+    foot_position_b[1] << 0.17, 0.15, -0.35;
+    foot_position_b[2] << -0.17, -0.15, -0.35;
+    foot_position_b[3] << -0.17, 0.15, -0.35;
 
     RobotState robot_state(euler, body_position, angular_velocity, linear_velocity, foot_position_b);
-    RobotController robot_controller(robot_model, robot_state, q_weights, r_weights, 400, 20);
-    robot_state.updateContactState({true, false, false, true});
+    RobotController robot_controller(robot_model, robot_state, q_weights, r_weights, 200, 30);
+    robot_state.updateContactState({false, true, true, false});
 
     /// mpc
     a1->setGeneralizedCoordinate(jointNominalConfig);
@@ -99,7 +98,7 @@ int main() {
         robot_state.updateState(euler, body_position, angular_velocity, linear_velocity);
 
         std::array<Eigen::Matrix3d, LEG_NUM> foot_jacobian;
-        cmd_vel = Eigen::Vector3d(0.0, 0, 0);
+        cmd_vel = Eigen::Vector3d(0, 0, 0);
 
         for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
             raisim::Vec<3> foot_position_w;
