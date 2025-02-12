@@ -71,6 +71,7 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
 
     double mpc_dt = robot_model_.dt();
     Eigen::Vector3d euler = robot_state.euler_angle();
+    Eigen::Vector3d nominal_euler = robot_nominal_state_.euler_angle();
     Eigen::Vector3d position = robot_state.position();
     Eigen::Vector3d linear_velocity = {cmd_vel_b[0], cmd_vel_b[1], 0};
     Eigen::Vector3d linear_velocity_w = robot_state.rotation_matrix() * linear_velocity;
@@ -80,7 +81,9 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
         // clang-format off
         mpc_states_d.segment(mpc_step * MPC_STATE_DIM, MPC_STATE_DIM) << 
 		// orientation
-        robot_nominal_state_.euler_angle(),
+        nominal_euler[0],
+        nominal_euler[1],
+        euler[2] + cmd_vel_b[2] * 0.5 * mpc_dt * (mpc_step+1),
 		// position
         position[0] + linear_velocity_w[0] * mpc_dt * (mpc_step+1),
 		position[1] + linear_velocity_w[1] * mpc_dt * (mpc_step+1), 
@@ -97,7 +100,6 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
         robot_model_.gravity();
         // clang-format on
     }
-
     robot_model_.updateAc(robot_state.euler_angle());
     robot_model_.updateBc(robot_state.rotation_matrix(), robot_state.foot_position());
     robot_model_.updateDiscretizedModel();
@@ -134,20 +136,18 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeSwingForce(RobotSta
                                                                         const Eigen::Ref<const Eigen::Vector3d>& cmd_vel_b) {
     std::array<Eigen::Vector3d, LEG_NUM> result;
     std::array<Eigen::Vector3d, LEG_NUM> foot_position_d;
-
+    Eigen::Vector3d euler = robot_state.euler_angle();
     Eigen::Matrix3d R = robot_state.rotation_matrix();
     Eigen::Matrix3d R_T = R.transpose();
     Eigen::Vector3d cmd_vel_w = R * cmd_vel_b;
     cmd_vel_w[2] = 0;
     Eigen::Vector3d body_position_w = robot_state.position();
-
     for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
         result[leg_idx].setZero();
-        Eigen::Vector3d hip_position_b = robot_nominal_state_.foot_position(leg_idx);
-        Eigen::Vector3d p_ref = body_position_w + hip_position_b;
+        Eigen::Vector3d p_ref = body_position_w + R * robot_nominal_state_.foot_position(leg_idx);
         p_ref[2] = 0;
         foot_position_d[leg_idx] = p_ref + cmd_vel_w * stance_duration_ / 2;
-        Eigen::Vector3d foot_position_w = robot_state.foot_position(leg_idx) + body_position_w;
+        Eigen::Vector3d foot_position_w = (R_T * robot_state.foot_position(leg_idx)) + body_position_w;
         if (robot_state.contact_state(leg_idx) == false) {
             swing_counter_[leg_idx] += 0.001;
             double s = swing_counter_[leg_idx] / swing_duration_;

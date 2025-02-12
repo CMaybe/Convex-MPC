@@ -102,14 +102,16 @@ int main() {
         dynamics_torque = ANYmal->getNonlinearities({0, 0, params::gravity}).e();
         robot_state.updateState(euler, body_position, angular_velocity, linear_velocity);
 
-        cmd_vel = {1.0, 0, 0};
+        Eigen::Matrix3d R = robot_state.rotation_matrix();
+
+        cmd_vel = {0.0, 0.0, -0.3};
         for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
             raisim::Vec<3> foot_position_w;
             Eigen::MatrixXd full_jacobian(3, ANYmal->getDOF());
             ANYmal->getFramePosition(leg_list[leg_idx], foot_position_w);
             ANYmal->getDenseFrameJacobian(leg_list[leg_idx], full_jacobian);
             foot_jacobian[leg_idx] = full_jacobian.block(0, 6 + 3 * leg_idx, 3, 3);
-            foot_position_b[leg_idx] = foot_position_w.e() - body_position;
+            foot_position_b[leg_idx] = (R * foot_position_w.e()) - body_position;
             foot_velocity[leg_idx] = foot_jacobian[leg_idx] * current_jointVelocity.segment(6 + 3 * leg_idx, 3);
         }
 
@@ -120,7 +122,7 @@ int main() {
         }
         feedback = robot_controller.computeSwingForce(robot_state, cmd_vel);
         for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
-            grf_torque[leg_idx] = -foot_jacobian[leg_idx].transpose() * 1.2 * grf[leg_idx];
+            grf_torque[leg_idx] = -foot_jacobian[leg_idx].transpose() * grf[leg_idx];
             feedforward[leg_idx] = dynamics_torque.segment(6 + 3 * leg_idx, 3);
             feedback_torque[leg_idx] = foot_jacobian[leg_idx].transpose() * feedback[leg_idx];
         }
