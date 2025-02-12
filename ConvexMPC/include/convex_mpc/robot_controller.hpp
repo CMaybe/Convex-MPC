@@ -17,13 +17,17 @@ public:
                     const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& q_weights,
                     const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& r_weights,
                     const double& kp,
-                    const double& kd);
+                    const double& kd,
+                    const double& swing_duration = 0.2,
+                    const double& stance_duration = 0.2);
     RobotController(const RobotModel& robot_model,
                     const RobotState& nominal_state,
                     const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& q_weights,
                     const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& r_weights,
                     const double& kp,
-                    const double& kd);
+                    const double& kd,
+                    const double& swing_duration = 0.2,
+                    const double& stance_duration = 0.2);
     std::array<Eigen::Vector3d, LEG_NUM> computeGRF(RobotState& robot_state, const Eigen::Ref<const Eigen::Vector3d>& cmd_vel);
     std::array<Eigen::Vector3d, LEG_NUM> computeSwingForce(RobotState& robot_state,
                                                            const Eigen::Ref<const Eigen::Vector3d>& cmd_vel);
@@ -43,8 +47,8 @@ private:
     std::array<double, LEG_NUM> swing_counter_;
     std::array<double, LEG_NUM> stance_counter_;
 
-    static constexpr double swing_duration_ = 0.5;
-    static constexpr double stance_duration_ = 0.5;
+    double swing_duration_;
+    double stance_duration_;
 };
 }  // namespace ConvexMPC
 

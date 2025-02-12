@@ -6,8 +6,14 @@ RobotController::RobotController(const RobotModel& robot_model,
                                  const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& q_weights,
                                  const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& r_weights,
                                  const double& kp,
-                                 const double& kd)
-    : robot_model_(robot_model), q_weights_(q_weights), r_weights_(r_weights) {
+                                 const double& kd,
+                                 const double& swing_duration,
+                                 const double& stance_duration)
+    : robot_model_(robot_model)
+    , q_weights_(q_weights)
+    , r_weights_(r_weights)
+    , swing_duration_(swing_duration)
+    , stance_duration_(stance_duration) {
     constraint_coefficient_.setZero(MPC_CONSTRAINT_DIM, MPC_INPUT_DIM);
     Eigen::MatrixXd contraints(5, 3);
     // clang-format off
@@ -31,8 +37,15 @@ RobotController::RobotController(const RobotModel& robot_model,
                                  const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& q_weights,
                                  const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& r_weights,
                                  const double& kp,
-                                 const double& kd)
-    : robot_model_(robot_model), robot_nominal_state_(nominal_state), q_weights_(q_weights), r_weights_(r_weights) {
+                                 const double& kd,
+                                 const double& swing_duration,
+                                 const double& stance_duration)
+    : robot_model_(robot_model)
+    , robot_nominal_state_(nominal_state)
+    , q_weights_(q_weights)
+    , r_weights_(r_weights)
+    , swing_duration_(swing_duration)
+    , stance_duration_(stance_duration) {
     constraint_coefficient_.setZero(MPC_CONSTRAINT_DIM, MPC_INPUT_DIM);
     Eigen::MatrixXd contraints(5, 3);
     // clang-format off
