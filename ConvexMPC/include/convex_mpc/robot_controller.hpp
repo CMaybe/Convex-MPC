@@ -43,8 +43,8 @@ private:
     std::array<double, LEG_NUM> swing_counter_;
     std::array<double, LEG_NUM> stance_counter_;
 
-    static constexpr double swing_duration_ = 0.2;
-    static constexpr double stance_duration_ = 0.2;
+    static constexpr double swing_duration_ = 0.5;
+    static constexpr double stance_duration_ = 0.5;
 };
 }  // namespace ConvexMPC
 
