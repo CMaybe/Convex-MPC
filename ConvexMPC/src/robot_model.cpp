@@ -28,16 +28,8 @@ RobotModel::RobotModel(const Eigen::Ref<const Eigen::Matrix3d>& inertia,
     Bd_.setZero();
 }
 
-void RobotModel::updateAc(const Eigen::Ref<const Eigen::Vector3d>& euler_angle) {
-    Eigen::Matrix3d rotation_matrix = utils::euler_to_matrix(euler_angle);
+void RobotModel::updateAc(const Eigen::Ref<const Eigen::Matrix3d>& rotation_matrix) {
     Ac_.block<3, 3>(0, 6) = rotation_matrix;
-    Ac_.block<3, 3>(3, 9) = Eigen::Matrix3d::Identity();
-    Ac_(11, 12) = 1.0;
-}
-
-void RobotModel::updateAc(const double& yaw) {
-    Eigen::Matrix3d yaw_matrix = Eigen::Matrix3d::Identity() * Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
-    Ac_.block<3, 3>(0, 6) = yaw_matrix;
     Ac_.block<3, 3>(3, 9) = Eigen::Matrix3d::Identity();
     Ac_(11, 12) = 1.0;
 }

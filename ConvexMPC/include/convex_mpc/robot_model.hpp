@@ -21,8 +21,7 @@ public:
                const double& f_min,
                const double& f_max);
 
-    void updateAc(const double& yaw);
-    void updateAc(const Eigen::Ref<const Eigen::Vector3d>& euler_angle);
+    void updateAc(const Eigen::Ref<const Eigen::Matrix3d>& rotation_matrix);
     void updateBc(const Eigen::Ref<const Eigen::Matrix3d>& rotation_matrix,
                   const std::array<Eigen::Vector3d, LEG_NUM>& foot_positions_w);
     void updateDiscretizedModel();
