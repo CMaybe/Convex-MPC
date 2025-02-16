@@ -39,7 +39,7 @@ int main() {
 
     std::atomic<bool> control_execute{};
     control_execute.store(true, std::memory_order_release);
-    std::array<Eigen::Vector3d, LEG_NUM> foot_position_b, foot_velocity;
+    std::array<Eigen::Vector3d, LEG_NUM> foot_position_b, foot_velocity_b;
     std::array<Eigen::Vector3d, LEG_NUM> grf, feedback, feedforward;
     std::array<Eigen::Vector3d, LEG_NUM> grf_torque, feedback_torque, feedforward_torque;
     std::array<Eigen::Matrix3d, LEG_NUM> foot_jacobian;
@@ -57,7 +57,9 @@ int main() {
     jointPgain.setZero();
     jointDgain.setZero();
     jointVelocityTarget.setZero();
+    // jointNominalConfig << 0, 0, 0.54, 0, 0, 0, 1, 0.03, 0.4, -0.8, -0.03, 0.4, -0.8, 0.03, -0.4, 0.8, -0.03, -0.4, 0.8;
     jointNominalConfig << 0, 0, 0.54, 1, 0, 0, 0, 0.03, 0.4, -0.8, -0.03, 0.4, -0.8, 0.03, -0.4, 0.8, -0.03, -0.4, 0.8;
+
     q_weights << 50, 10, 10, 10, 10, 100, 0.05, 0.05, 0.05, 10, 10, 10, 0.;
     r_weights << 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6, 1e-5, 1e-5, 1e-6;
 
@@ -82,12 +84,13 @@ int main() {
     for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
         raisim::Vec<3> foot_position_w;
         ANYmal->getFramePosition(leg_list[leg_idx], foot_position_w);
-        foot_position_b[leg_idx] = foot_position_w.e();
+        foot_position_b[leg_idx] = foot_position_w.e() - body_position;
     }
     RobotState robot_state(euler, body_position, angular_velocity, linear_velocity, foot_position_b);
-    RobotController robot_controller(robot_model, robot_state, q_weights, r_weights, 700, 40, 0.2, 0.2);
+    RobotController robot_controller(robot_model, robot_state, q_weights, r_weights, 400, 20, 0.2, 0.2);
     robot_state.updateContactState({false, true, true, false});
     ANYmal->setGeneralizedCoordinate(jointNominalConfig);
+
     /// mpc
     for (int i = 0; i < 10000000; i++) {
         RS_TIMED_LOOP(int(world.getTimeStep() * 1e6))
@@ -102,21 +105,19 @@ int main() {
         dynamics_torque = ANYmal->getNonlinearities({0, 0, params::gravity}).e();
         robot_state.updateState(euler, body_position, angular_velocity, linear_velocity);
 
-        Eigen::Matrix3d R = robot_state.rotation_matrix();
-
-        cmd_vel = {0.0, 0.0, -0.3};
+        cmd_vel = {0.0, 0.0, 0.1};
         for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
             raisim::Vec<3> foot_position_w;
             Eigen::MatrixXd full_jacobian(3, ANYmal->getDOF());
             ANYmal->getFramePosition(leg_list[leg_idx], foot_position_w);
             ANYmal->getDenseFrameJacobian(leg_list[leg_idx], full_jacobian);
             foot_jacobian[leg_idx] = full_jacobian.block(0, 6 + 3 * leg_idx, 3, 3);
-            foot_position_b[leg_idx] = (R * foot_position_w.e()) - body_position;
-            foot_velocity[leg_idx] = foot_jacobian[leg_idx] * current_jointVelocity.segment(6 + 3 * leg_idx, 3);
+            foot_position_b[leg_idx] = robot_state.R().transpose() * (foot_position_w.e() - body_position);
+            foot_velocity_b[leg_idx] = foot_jacobian[leg_idx] * current_jointVelocity.segment(6 + 3 * leg_idx, 3);
         }
 
         robot_state.updateFootPosition(foot_position_b);
-        robot_state.updateFootVelocity(foot_velocity);
+        robot_state.updateFootVelocity(foot_velocity_b);
         if (std::fmod(i, (mpc_dt / time_step)) == 0) {
             grf = robot_controller.computeGRF(robot_state, cmd_vel);
         }

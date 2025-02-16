@@ -28,16 +28,16 @@ RobotModel::RobotModel(const Eigen::Ref<const Eigen::Matrix3d>& inertia,
     Bd_.setZero();
 }
 
-void RobotModel::updateAc(const Eigen::Ref<const Eigen::Matrix3d>& rotation_matrix) {
-    Ac_.block<3, 3>(0, 6) = rotation_matrix;
+void RobotModel::updateAc(const Eigen::Ref<const Eigen::Matrix3d>& Rz) {
+    Ac_.block<3, 3>(0, 6) = Rz;
     Ac_.block<3, 3>(3, 9) = Eigen::Matrix3d::Identity();
     Ac_(11, 12) = 1.0;
 }
 
-void RobotModel::updateBc(const Eigen::Ref<const Eigen::Matrix3d>& rotation_matrix,
+void RobotModel::updateBc(const Eigen::Ref<const Eigen::Matrix3d>& Rz,
                           const std::array<Eigen::Vector3d, LEG_NUM>& foot_positions_b) {
     Eigen::Matrix3d world_inertia;
-    world_inertia = rotation_matrix * inertia_ * rotation_matrix.transpose();
+    world_inertia = Rz * inertia_ * Rz.transpose();
     for (size_t leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
         Bc_.block<3, 3>(6, 3 * leg_idx) = world_inertia.inverse() * utils::vector_to_skew(foot_positions_b[leg_idx]);
         Bc_.block<3, 3>(9, 3 * leg_idx) = (1 / mass_) * Eigen::Matrix3d::Identity();

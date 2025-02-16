@@ -7,13 +7,13 @@ RobotController::RobotController(const RobotModel& robot_model,
                                  const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& r_weights,
                                  const double& kp,
                                  const double& kd,
-                                 const double& swing_duration,
-                                 const double& stance_duration)
+                                 const double& stance_duration,
+                                 const double& swing_duration)
     : robot_model_(robot_model)
     , q_weights_(q_weights)
     , r_weights_(r_weights)
-    , swing_duration_(swing_duration)
-    , stance_duration_(stance_duration) {
+    , stance_duration_(stance_duration)
+    , swing_duration_(swing_duration) {
     constraint_coefficient_.setZero(MPC_CONSTRAINT_DIM, MPC_INPUT_DIM);
     Eigen::MatrixXd contraints(5, 3);
     // clang-format off
@@ -38,14 +38,14 @@ RobotController::RobotController(const RobotModel& robot_model,
                                  const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& r_weights,
                                  const double& kp,
                                  const double& kd,
-                                 const double& swing_duration,
-                                 const double& stance_duration)
+                                 const double& stance_duration,
+                                 const double& swing_duration)
     : robot_model_(robot_model)
     , robot_nominal_state_(nominal_state)
     , q_weights_(q_weights)
     , r_weights_(r_weights)
-    , swing_duration_(swing_duration)
-    , stance_duration_(stance_duration) {
+    , stance_duration_(stance_duration)
+    , swing_duration_(swing_duration) {
     constraint_coefficient_.setZero(MPC_CONSTRAINT_DIM, MPC_INPUT_DIM);
     Eigen::MatrixXd contraints(5, 3);
     // clang-format off
@@ -74,7 +74,7 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
     Eigen::Vector3d nominal_euler = robot_nominal_state_.euler_angle();
     Eigen::Vector3d position = robot_state.position();
     Eigen::Vector3d linear_velocity = {cmd_vel_b[0], cmd_vel_b[1], 0};
-    Eigen::Vector3d linear_velocity_w = robot_state.rotation_matrix() * linear_velocity;
+    Eigen::Vector3d linear_velocity_w = robot_state.Rz() * linear_velocity;
 
     double z = robot_nominal_state_.position()[2];
     for (int mpc_step = 0; mpc_step < MPC_HORIZON; mpc_step++) {
@@ -100,8 +100,8 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
         robot_model_.gravity();
         // clang-format on
     }
-    robot_model_.updateAc(robot_state.euler_angle());
-    robot_model_.updateBc(robot_state.rotation_matrix(), robot_state.foot_position());
+    robot_model_.updateAc(robot_state.Rz());
+    robot_model_.updateBc(robot_state.Rz(), robot_state.foot_position());
     robot_model_.updateDiscretizedModel();
     for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
         if (robot_state.contact_state(leg_idx) == true) {
@@ -126,7 +126,7 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
     for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
         grf[leg_idx].setZero();
         if (!isnan(solution.segment<3>(leg_idx * 3).norm()))
-            grf[leg_idx] = robot_state.rotation_matrix().transpose() * solution.segment<3>(leg_idx * 3);
+            grf[leg_idx] = robot_state.R().transpose() * solution.segment<3>(leg_idx * 3);
     }
 
     return grf;
@@ -136,50 +136,40 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeSwingForce(RobotSta
                                                                         const Eigen::Ref<const Eigen::Vector3d>& cmd_vel_b) {
     std::array<Eigen::Vector3d, LEG_NUM> result;
     std::array<Eigen::Vector3d, LEG_NUM> foot_position_d;
-    Eigen::Vector3d euler = robot_state.euler_angle();
-    Eigen::Matrix3d R = robot_state.rotation_matrix();
-    Eigen::Matrix3d R_T = R.transpose();
-    Eigen::Vector3d cmd_vel_w = R * cmd_vel_b;
+    Eigen::Matrix3d R = robot_state.R();
+    Eigen::Matrix3d R_T = robot_state.R().transpose();
+    Eigen::Vector3d cmd_vel_w = R * Eigen::Vector3d{cmd_vel_b[0], cmd_vel_b[1], 0};
     cmd_vel_w[2] = 0;
     Eigen::Vector3d body_position_w = robot_state.position();
+
     for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
         result[leg_idx].setZero();
-        Eigen::Vector3d p_ref = body_position_w + R * robot_nominal_state_.foot_position(leg_idx);
-        p_ref[2] = 0;
-        foot_position_d[leg_idx] = p_ref + cmd_vel_w * stance_duration_ / 2;
-        Eigen::Vector3d foot_position_w = (R_T * robot_state.foot_position(leg_idx)) + body_position_w;
         if (robot_state.contact_state(leg_idx) == false) {
+            Eigen::Vector3d foot_position_w = R * robot_state.foot_position(leg_idx) + body_position_w;
+            Eigen::Vector3d p_ref = R * robot_nominal_state_.foot_position(leg_idx) + body_position_w;
+            p_ref[2] = 0;
+            foot_position_d[leg_idx] = p_ref + cmd_vel_w * stance_duration_ / 2;
             swing_counter_[leg_idx] += 0.001;
             double s = swing_counter_[leg_idx] / swing_duration_;
-            for (int i = 0; i < 3; i++) {
-                if (i == 2) {
-                    foot_position_d[leg_idx](i) = utils::bezier_curve(s,
-                                                                      {
-                                                                          0,
-                                                                          0,
-                                                                          0.2,
-                                                                          0,
-                                                                          0,
-                                                                      });
-                } else {
-                    foot_position_d[leg_idx](i) = utils::bezier_curve(s,
-                                                                      {foot_position_w(i),
-                                                                       foot_position_w(i),
-                                                                       foot_position_d[leg_idx](i),
-                                                                       foot_position_d[leg_idx](i),
-                                                                       foot_position_d[leg_idx](i)});
-                }
-            }
+
+            foot_position_d[leg_idx](2) = utils::bezier_curve(s,
+                                                              {
+                                                                  0,
+                                                                  0,
+                                                                  0.2,
+                                                                  0,
+                                                                  0,
+                                                              });
+
             // Todo
             // Add disired foot velocity
+            if (swing_counter_[leg_idx] >= swing_duration_) {
+                swing_counter_[leg_idx] = 0;
+                robot_state.updateContactState(leg_idx, true);
+            }
+            result[leg_idx] =
+                (Kp_ * R_T * (foot_position_d[leg_idx] - foot_position_w) + Kd_ * (-robot_state.foot_velocity(leg_idx)));
         }
-        if (swing_counter_[leg_idx] >= swing_duration_) {
-            swing_counter_[leg_idx] = 0;
-            robot_state.updateContactState(leg_idx, true);
-        }
-
-        result[leg_idx] =
-            (Kp_ * R_T * (foot_position_d[leg_idx] - foot_position_w) + Kd_ * (-robot_state.foot_velocity(leg_idx)));
     }
 
     return result;

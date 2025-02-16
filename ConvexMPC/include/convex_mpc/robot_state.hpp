@@ -46,8 +46,9 @@ public:
     const std::array<bool, LEG_NUM>& contact_state() const { return contact_state_; }
     bool contact_state(const size_t& leg_idx) const { return contact_state_[leg_idx]; }
 
-    Eigen::Matrix3d rotation_matrix() const { return utils::euler_to_matrix(euler_angle_); }
-    Eigen::Quaterniond body_quaternion() const { return utils::euler_to_quaternion(euler_angle_); }
+    // transforms from body to world coordinates.
+    Eigen::Matrix3d R() const { return utils::euler_to_matrix(euler_angle_); }
+    Eigen::Matrix3d Rz() const { return utils::euler_to_matrix(Eigen::Vector3d{0, 0, euler_angle_[2]}); }
 
 private:
     // state
