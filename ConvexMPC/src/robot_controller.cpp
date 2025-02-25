@@ -100,8 +100,15 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
         robot_model_.gravity();
         // clang-format on
     }
+
+    Eigen::Matrix3d R = robot_state.R();
+    std::array<Eigen::Vector3d, LEG_NUM> foot_position_com;
+    for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
+        foot_position_com[leg_idx] = R * robot_state.foot_position(leg_idx);
+    }
+
     robot_model_.updateAc(robot_state.Rz());
-    robot_model_.updateBc(robot_state.Rz(), robot_state.foot_position());
+    robot_model_.updateBc(robot_state.Rz(), foot_position_com);
     robot_model_.updateDiscretizedModel();
     for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
         if (robot_state.contact_state(leg_idx) == true) {
@@ -125,8 +132,7 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
 
     for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
         grf[leg_idx].setZero();
-        if (!isnan(solution.segment<3>(leg_idx * 3).norm()))
-            grf[leg_idx] = robot_state.R().transpose() * solution.segment<3>(leg_idx * 3);
+        if (!isnan(solution.segment<3>(leg_idx * 3).norm())) grf[leg_idx] = R.transpose() * solution.segment<3>(leg_idx * 3);
     }
 
     return grf;
@@ -135,7 +141,6 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
 std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeSwingForce(RobotState& robot_state,
                                                                         const Eigen::Ref<const Eigen::Vector3d>& cmd_vel_b) {
     std::array<Eigen::Vector3d, LEG_NUM> result;
-    std::array<Eigen::Vector3d, LEG_NUM> foot_position_d;
     Eigen::Matrix3d R = robot_state.R();
     Eigen::Matrix3d R_T = robot_state.R().transpose();
     Eigen::Vector3d cmd_vel_w = R * Eigen::Vector3d{cmd_vel_b[0], cmd_vel_b[1], 0};
@@ -145,21 +150,22 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeSwingForce(RobotSta
     for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
         result[leg_idx].setZero();
         if (robot_state.contact_state(leg_idx) == false) {
+            Eigen::Vector3d foot_position_d;
             Eigen::Vector3d foot_position_w = R * robot_state.foot_position(leg_idx) + body_position_w;
             Eigen::Vector3d p_ref = R * robot_nominal_state_.foot_position(leg_idx) + body_position_w;
             p_ref[2] = 0;
-            foot_position_d[leg_idx] = p_ref + cmd_vel_w * stance_duration_ / 2;
+            foot_position_d = p_ref + cmd_vel_w * stance_duration_ / 2;
             swing_counter_[leg_idx] += 0.001;
             double s = swing_counter_[leg_idx] / swing_duration_;
 
-            foot_position_d[leg_idx](2) = utils::bezier_curve(s,
-                                                              {
-                                                                  0,
-                                                                  0,
-                                                                  0.2,
-                                                                  0,
-                                                                  0,
-                                                              });
+            foot_position_d(2) = utils::bezier_curve(s,
+                                                     {
+                                                         0,
+                                                         0,
+                                                         0.2,
+                                                         0,
+                                                         0,
+                                                     });
 
             // Todo
             // Add disired foot velocity
@@ -167,8 +173,7 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeSwingForce(RobotSta
                 swing_counter_[leg_idx] = 0;
                 robot_state.updateContactState(leg_idx, true);
             }
-            result[leg_idx] =
-                (Kp_ * R_T * (foot_position_d[leg_idx] - foot_position_w) + Kd_ * (-robot_state.foot_velocity(leg_idx)));
+            result[leg_idx] = (Kp_ * R_T * (foot_position_d - foot_position_w) + Kd_ * (-robot_state.foot_velocity(leg_idx)));
         }
     }
 

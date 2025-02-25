@@ -35,11 +35,11 @@ void RobotModel::updateAc(const Eigen::Ref<const Eigen::Matrix3d>& Rz) {
 }
 
 void RobotModel::updateBc(const Eigen::Ref<const Eigen::Matrix3d>& Rz,
-                          const std::array<Eigen::Vector3d, LEG_NUM>& foot_positions_b) {
+                          const std::array<Eigen::Vector3d, LEG_NUM>& foot_positions_com) {
     Eigen::Matrix3d world_inertia;
     world_inertia = Rz * inertia_ * Rz.transpose();
     for (size_t leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
-        Bc_.block<3, 3>(6, 3 * leg_idx) = world_inertia.inverse() * utils::vector_to_skew(foot_positions_b[leg_idx]);
+        Bc_.block<3, 3>(6, 3 * leg_idx) = world_inertia.inverse() * utils::vector_to_skew(foot_positions_com[leg_idx]);
         Bc_.block<3, 3>(9, 3 * leg_idx) = (1 / mass_) * Eigen::Matrix3d::Identity();
     }
 }
