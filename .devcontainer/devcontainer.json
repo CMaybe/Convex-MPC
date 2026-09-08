@@ -13,7 +13,8 @@
 	"workspaceMount": "source=${localWorkspaceFolder},target=/home/${localEnv:USER}/convex-mpc,type=bind",
 	"mounts": [
 		"source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
-		"source=/dev/dri,target=/dev/dri,type=bind"
+		"source=/dev/dri,target=/dev/dri,type=bind",
+		"source=/home/${localEnv:USER}/.ssh/,target=/home/${localEnv:USER}/.ssh/,type=bind,readonly"
 	],
 	"runArgs": [
 		"--name",
