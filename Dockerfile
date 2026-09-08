@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	git \
 	libeigen3-dev \
 	libglfw3-dev \
+	openssh-client \
 	sudo \
 	vim \
 	wget \
