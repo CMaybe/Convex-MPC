@@ -1,30 +1,25 @@
 {
-	"containerEnv": {
-		"DISPLAY": "${localEnv:DISPLAY}",
-		"USER_NAME": "${localEnv:USER}"
-	},
+	"name": "convex-mpc",
 	"build": {
 		"dockerfile": "../Dockerfile",
 		"args": {
 			"USER_NAME": "${localEnv:USER}"
 		}
 	},
-	"name": "dev-convex-mpc",
+	"containerEnv": {
+		"DISPLAY": "${localEnv:DISPLAY}"
+	},
+	"workspaceFolder": "/home/${localEnv:USER}/convex-mpc",
+	"workspaceMount": "source=${localWorkspaceFolder},target=/home/${localEnv:USER}/convex-mpc,type=bind",
 	"mounts": [
 		"source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
-		"source=/home/${localEnv:USER}/.ssh/,target=/home/${localEnv:USER}/.ssh/,type=bind",
-		"source=/dev,target=/dev,type=bind",
-		"source=/home/${localEnv:USER}/.raisim/,target=/home/${localEnv:USER}/.raisim/,type=bind"
+		"source=/dev/dri,target=/dev/dri,type=bind"
 	],
-	"workspaceFolder": "/home/${localEnv:USER}/drcd_ws/src/convex-mpc",
-	"workspaceMount": "source=${localWorkspaceFolder},target=/home/${localEnv:USER}/drcd_ws/src/convex-mpc,type=bind",
 	"runArgs": [
 		"--name",
-		"dev-convex-mpc",
-		"--cap-add=SYS_PTRACE",
+		"convex-mpc",
 		"--net=host",
-		"--privileged",
-		"--security-opt=seccomp=unconfined"
+		"--cap-add=SYS_PTRACE"
 	],
 	"customizations": {
 		"vscode": {
@@ -36,10 +31,8 @@
 			"extensions": [
 				"twxs.cmake",
 				"xaver.clang-format",
-				"ms-vscode-remote.vscode-remote-extensionpack",
 				"ms-vscode.cpptools-extension-pack",
-				"mhutchie.git-graph",
-				"donjayamanne.githistory"
+				"mhutchie.git-graph"
 			]
 		}
 	}
