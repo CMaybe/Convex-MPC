@@ -58,3 +58,9 @@ __pycache__/
 # Custom executables
 /bin/
 /lib/
+
+# Papers and other copyrighted documents (keep them local, do not commit)
+*.pdf
+
+# MuJoCo runtime logs
+MUJOCO_LOG.TXT
