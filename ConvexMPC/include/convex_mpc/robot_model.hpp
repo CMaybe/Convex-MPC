@@ -22,21 +22,21 @@ public:
                const double& f_max);
 
     void updateAc(const Eigen::Ref<const Eigen::Matrix3d>& Rz);
-    void updateBc(const Eigen::Ref<const Eigen::Matrix3d>& Rz, const std::array<Eigen::Vector3d, LEG_NUM>& foot_positions_com);
+    void updateBc(const Eigen::Ref<const Eigen::Matrix3d>& Rz, const std::array<Eigen::Vector3d, LEG_NUM>& foot_positions_abs);
     void updateDiscretizedModel();
 
     // getter
-    double dt() const { return dt_; };
-    double mass() const { return mass_; };
-    double gravity() const { return gravity_; };
-    double mu() const { return mu_; };
-    double f_min() const { return f_min_; };
-    double f_max() const { return f_max_; };
+    inline double dt() const { return dt_; };
+    inline double mass() const { return mass_; };
+    inline double gravity() const { return gravity_; };
+    inline double mu() const { return mu_; };
+    inline double f_min() const { return f_min_; };
+    inline double f_max() const { return f_max_; };
 
-    const Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM>& Ac() const { return Ac_; };
-    const Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM>& Bc() const { return Bc_; };
-    const Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM>& Ad() const { return Ad_; };
-    const Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM>& Bd() const { return Bd_; };
+    inline const Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM>& Ac() const { return Ac_; };
+    inline const Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM>& Bc() const { return Bc_; };
+    inline const Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM>& Ad() const { return Ad_; };
+    inline const Eigen::Matrix<double, MPC_STATE_DIM, MPC_INPUT_DIM>& Bd() const { return Bd_; };
 
 private:
     Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM> Ac_;
