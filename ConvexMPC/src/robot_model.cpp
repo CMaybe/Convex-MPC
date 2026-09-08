@@ -1,7 +1,7 @@
 #include "convex_mpc/robot_model.hpp"
 #include "convex_mpc/utils.hpp"
 
-#include <iostream>
+#include <unsupported/Eigen/MatrixFunctions>
 namespace ConvexMPC {
 
 RobotModel::RobotModel(
@@ -28,33 +28,34 @@ RobotModel::RobotModel(const Eigen::Ref<const Eigen::Matrix3d>& inertia,
     Bd_.setZero();
 }
 
-void RobotModel::updateAc(const Eigen::Ref<const Eigen::Vector3d>& euler_angle) {
-    Eigen::Matrix3d rotation_matrix = utils::euler_to_matrix(euler_angle);
-    Ac_.block<3, 3>(0, 6) = rotation_matrix;
+void RobotModel::updateAc(const Eigen::Ref<const Eigen::Matrix3d>& Rz) {
+    Ac_.setZero();
+    // Euler-rate mapping for small roll/pitch: d(Theta)/dt = Rz(psi)^T * omega  (Di Carlo et al., eq. 10-12)
+    Ac_.block<3, 3>(0, 6) = Rz.transpose();
     Ac_.block<3, 3>(3, 9) = Eigen::Matrix3d::Identity();
     Ac_(11, 12) = 1.0;
 }
 
-void RobotModel::updateAc(const double& yaw) {
-    Eigen::Matrix3d yaw_matrix = Eigen::Matrix3d::Identity() * Eigen::AngleAxisd(yaw, Eigen::Vector3d::UnitZ());
-    Ac_.block<3, 3>(0, 6) = yaw_matrix;
-    Ac_.block<3, 3>(3, 9) = Eigen::Matrix3d::Identity();
-    Ac_(11, 12) = 1.0;
-}
-
-void RobotModel::updateBc(const Eigen::Ref<const Eigen::Matrix3d>& rotation_matrix,
-                          const std::array<Eigen::Vector3d, LEG_NUM>& foot_positions_b) {
+void RobotModel::updateBc(const Eigen::Ref<const Eigen::Matrix3d>& Rz,
+                          const std::array<Eigen::Vector3d, LEG_NUM>& foot_positions_abs) {
     Eigen::Matrix3d world_inertia;
-    world_inertia = rotation_matrix * inertia_ * rotation_matrix.transpose();
+    world_inertia = Rz * inertia_ * Rz.transpose();
+    Bc_.setZero();
     for (size_t leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
-        Bc_.block<3, 3>(6, 3 * leg_idx) = world_inertia.inverse() * utils::vector_to_skew(foot_positions_b[leg_idx]);
+        Bc_.block<3, 3>(6, 3 * leg_idx) = world_inertia.inverse() * utils::vector_to_skew(foot_positions_abs[leg_idx]);
         Bc_.block<3, 3>(9, 3 * leg_idx) = (1 / mass_) * Eigen::Matrix3d::Identity();
     }
 }
 
 void RobotModel::updateDiscretizedModel() {
-    Ad_ = Eigen::Matrix<double, MPC_STATE_DIM, MPC_STATE_DIM>::Identity() + Ac_ * dt_;
-    Bd_ = Bc_ * dt_;
+    // Zero-order hold via the state transition matrix of the extended system (Di Carlo et al., eq. 25-26)
+    constexpr int EXT_DIM = MPC_STATE_DIM + MPC_INPUT_DIM;
+    Eigen::Matrix<double, EXT_DIM, EXT_DIM> M = Eigen::Matrix<double, EXT_DIM, EXT_DIM>::Zero();
+    M.topLeftCorner<MPC_STATE_DIM, MPC_STATE_DIM>() = Ac_;
+    M.topRightCorner<MPC_STATE_DIM, MPC_INPUT_DIM>() = Bc_;
+    const Eigen::Matrix<double, EXT_DIM, EXT_DIM> Md = (M * dt_).exp();
+    Ad_ = Md.topLeftCorner<MPC_STATE_DIM, MPC_STATE_DIM>();
+    Bd_ = Md.topRightCorner<MPC_STATE_DIM, MPC_INPUT_DIM>();
 }
 
 }  // namespace ConvexMPC
