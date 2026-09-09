@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Native and WebAssembly checks
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build development image
+        run: |
+          docker build \
+            --build-arg USER_NAME=runner \
+            --build-arg USER_UID=$(id -u) \
+            --build-arg USER_GID=$(id -g) \
+            --tag convex-mpc-ci \
+            .
+
+      - name: Run checks
+        run: |
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/home/runner/convex-mpc" \
+            --workdir /home/runner/convex-mpc \
+            convex-mpc-ci \
+            scripts/ci.sh

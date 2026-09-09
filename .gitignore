@@ -1,5 +1,7 @@
 # build directories
-build 
+/build/
+/build-wasm/
+/ConvexMPC/build/
 # Logs and temporary files
 /log/
 /logs/
@@ -34,6 +36,17 @@ __pycache__/
 
 # Ignore tests build files
 /test_results/
+
+# Web frontend dependencies and generated assets
+/web/node_modules/
+/web/dist/
+/web/public/wasm/*.js
+/web/public/wasm/*.wasm
+/web/public/wasm/*.wasm.map
+/web/public/wasm/*.data
+/web/public/mujoco/
+/web/public/robots/anymal_c/
+/wasm/wasm/dist/
 
 
 # Miscellaneous binary files
