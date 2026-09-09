@@ -1,0 +1,66 @@
+name: Deploy Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ConvexMPC/**"
+      - "simulation/**"
+      - "wasm/**"
+      - "web/**"
+      - "scripts/**"
+      - "CMakeLists.txt"
+      - "Dockerfile"
+      - ".github/workflows/deploy-pages.yaml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build web artifact
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build development image
+        run: |
+          docker build \
+            --build-arg USER_NAME=runner \
+            --build-arg USER_UID=$(id -u) \
+            --build-arg USER_GID=$(id -g) \
+            --tag convex-mpc-pages \
+            .
+
+      - name: Build WebAssembly viewer
+        run: |
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/home/runner/convex-mpc" \
+            --workdir /home/runner/convex-mpc \
+            convex-mpc-pages \
+            bash -lc 'cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && npm --prefix web ci && npm --prefix web run build:full-wasm && npm --prefix web run build'
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-22.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
