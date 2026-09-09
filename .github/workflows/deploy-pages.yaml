@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Build development image
         run: |
@@ -49,7 +49,7 @@ jobs:
             bash -lc 'cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && npm --prefix web ci && npm --prefix web run build:full-wasm && npm --prefix web run build'
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: web/dist
 
@@ -63,4 +63,4 @@ jobs:
     steps:
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
