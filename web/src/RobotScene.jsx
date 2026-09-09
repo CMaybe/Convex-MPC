@@ -42,6 +42,8 @@ const nominalFeet = [
 	[-0.35, 0.2, -0.54]
 ];
 
+const publicAssetUrl = (path) => new URL(path, document.baseURI).toString();
+
 function Leg({ foot, index, force }) {
 	const [x, height, depth] = foot;
 	const sign = depth < 0 ? -1 : 1;
@@ -99,9 +101,9 @@ function Robot({ forces, command, physics }) {
 }
 
 function ActualMesh({ visual }) {
-	const source = useLoader(OBJLoader, `/robots/anymal_c/assets/${visual.meshName}.obj`);
+	const source = useLoader(OBJLoader, publicAssetUrl(`robots/anymal_c/assets/${visual.meshName}.obj`));
 	const definition = meshMaterials[visual.meshName] ?? { color: "#6f7883" };
-	const texture = useLoader(TextureLoader, `/robots/anymal_c/assets/${definition.texture ?? "base.png"}`);
+	const texture = useLoader(TextureLoader, publicAssetUrl(`robots/anymal_c/assets/${definition.texture ?? "base.png"}`));
 	const object = useMemo(() => {
 		const clone = source.clone(true);
 		texture.colorSpace = SRGBColorSpace;

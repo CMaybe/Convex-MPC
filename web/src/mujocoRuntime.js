@@ -1,5 +1,5 @@
 async function loadAsset(vfs, path) {
-	const response = await fetch(`/robots/anymal_c/${path}`);
+	const response = await fetch(new URL(`robots/anymal_c/${path}`, document.baseURI));
 	if (!response.ok) throw new Error(`failed to load ${path}`);
 	vfs.addBuffer(path, new Uint8Array(await response.arrayBuffer()));
 }
@@ -15,10 +15,11 @@ function eulerFromQuaternion([w, x, y, z]) {
 }
 
 export async function createMujocoRuntime() {
-	const { default: loadMujoco } = await import(/* webpackIgnore: true */ "/mujoco/mujoco.js");
-	const module = await loadMujoco({ locateFile: (file) => `/mujoco/${file}` });
+	const mujocoUrl = (path) => new URL(`mujoco/${path}`, document.baseURI).toString();
+	const { default: loadMujoco } = await import(/* webpackIgnore: true */ mujocoUrl("mujoco.js"));
+	const module = await loadMujoco({ locateFile: mujocoUrl });
 	const vfs = new module.MjVFS();
-	const assetPaths = await (await fetch("/robots/anymal_c/assets.json")).json();
+	const assetPaths = await (await fetch(new URL("robots/anymal_c/assets.json", document.baseURI))).json();
 	await Promise.all(assetPaths.map((path) => loadAsset(vfs, path)));
 	const model = module.MjModel.from_xml_path("scene.xml", vfs);
 	const data = new module.MjData(model);
