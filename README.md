@@ -8,16 +8,17 @@ Quadruped locomotion with the convex model-predictive controller from
 > pp. 7440-7447. doi: [10.1109/IROS.2018.8594448](https://doi.org/10.1109/IROS.2018.8594448)
 
 The controller is implemented from scratch in C++ (Eigen + qpOASES) and runs an
-ANYmal C robot in the [MuJoCo](https://mujoco.org) simulator. Everything is
-open source and all dependencies are downloaded automatically at build time —
-`clone`, `cmake`, `make`, run.
+ANYmal C robot in the [MuJoCo](https://mujoco.org) simulator. The same C++
+simulation core builds natively and as a WebAssembly module, rendered in the
+browser with Three.js. Everything is open source and dependencies are fetched
+automatically at build time.
 
 ## Quick start
 
 Requirements: Linux, a C++17 compiler, CMake ≥ 3.16, Eigen ≥ 3.4
-(`sudo apt install libeigen3-dev`). For the interactive viewer also install
-GLFW (`sudo apt install libglfw3-dev`); without it the binary builds headless-only.
-qpOASES and the MuJoCo SDK are fetched automatically by CMake.
+(`sudo apt install libeigen3-dev`). qpOASES and the MuJoCo SDK are fetched
+automatically by CMake. The supplied Dev Container includes Emscripten and
+Node.js 20 for the browser viewer.
 
 ```bash
 git clone https://github.com/CMaybe/Convex-MPC.git
@@ -29,9 +30,6 @@ cmake --build build -j
 Run:
 
 ```bash
-# interactive viewer, trot in place
-./build/simulation/mpc_locomotion
-
 # walk forward at 0.4 m/s while turning at 0.3 rad/s
 ./build/simulation/mpc_locomotion --vx 0.4 --wz 0.3
 
@@ -44,9 +42,27 @@ Run:
 
 Flags: `--vx/--vy` body-frame velocity command [m/s], `--wz` yaw rate [rad/s],
 `--steps N` simulation steps (1 ms each), `--headless`, `--stand`, `--xml PATH`.
+The controller uses a fixed-timing diagonal Trot gait. Commands are limited to
+$|v_x| \leq 1.2\,\mathrm{m/s}$, $|v_y| \leq 0.6\,\mathrm{m/s}$, and
+$|\omega_z| \leq 1.0\,\mathrm{rad/s}$.
 
-A translucent blue box in the viewer shows the single-rigid-body pose the MPC
-predicts at the end of its horizon.
+## Web viewer
+
+Build the native project once, then build and run the browser viewer inside the
+Dev Container:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+npm --prefix web run build:full-wasm
+npm --prefix web run dev
+```
+
+Open the forwarded port reported by VS Code, typically `http://localhost:3001`.
+The viewer renders the original ANYmal C visual meshes using live MuJoCo poses.
+It provides velocity and body-height controls, MPC Q/R scale controls, a reset
+command, ground-reaction-force arrows, camera follow, and mouse orbit, zoom,
+and pan controls.
 
 ## Project layout
 
@@ -57,7 +73,9 @@ ConvexMPC/    controller library (simulator-independent, Eigen + qpOASES only)
   robot_controller reference generation (Sec. IV-B), gait schedule + per-step
                    force constraints eq. (20)-(24), swing-leg control eq. (1) & (33)
   robot_state      robot state container
-simulation/   MuJoCo integration (main.cpp) + vendored ANYmal C model
+simulation/   shared SimulationCore (MuJoCo integration) + native headless CLI
+wasm/         source-linked MuJoCo + ConvexMPC Emscripten target and bindings
+web/          React + Three.js viewer, WebAssembly loader, and build config
 ```
 
 Implementation notes:
@@ -93,14 +111,41 @@ landings show brief force transients; and the purely proportional MPC cost
 leaves small steady-state offsets — the trotting body height sits a few
 centimeters above the reference (touchdown impulses) and the body pitches
 nose-down by ~3 degrees at walking speed (unmodeled swing-leg reactions).
-Weights live in `simulation/main.cpp`.
+`SimulationCore` owns model loading, state extraction, MPC/swing control,
+Jacobian torque mapping, and MuJoCo stepping. The native CLI and browser use
+the same implementation. Runtime body-height and Q/R scaling controls are
+applied through this core.
 
 ## Docker / devcontainer
 
 A `Dockerfile` and a VS Code devcontainer are provided. The image contains only
-the compiler toolchain, Eigen and GLFW — everything else (qpOASES, MuJoCo) is
-fetched by CMake inside the container. The repository is mounted at
-`~/convex-mpc` in the container.
+the native and browser toolchains, Eigen, GLFW, Emscripten, and Node.js 20 —
+everything else (qpOASES, MuJoCo) is fetched by CMake inside the container. The
+repository is mounted at `~/convex-mpc` in the container.
+
+The web workspace follows the React + webpack development shape used by the
+companion WASM projects:
+
+```bash
+# inside the dev container
+em++ --version
+npm --prefix web run build:full-wasm
+npm --prefix web run dev
+```
+
+`build:full-wasm` compiles MuJoCo 3.11.0, qpOASES, and the shared C++
+`SimulationCore` into one module and packages the ANYmal resources. The browser
+calls `SimulationCore::step()` directly, so its control timing matches the
+native headless simulator. Verify the MPC-only C++ to JavaScript boundary
+without a browser:
+
+```bash
+npm --prefix web run test:wasm
+```
+
+If `em++ --version` is not available, run **Dev Containers: Rebuild Container**
+in VS Code. Emscripten is installed in the image, while the current workspace
+mount preserves the source tree and `web/node_modules`.
 
 ### VS Code devcontainer
 
@@ -114,13 +159,8 @@ fetched by CMake inside the container. The repository is mounted at
    ./build/simulation/mpc_locomotion --headless --steps 10000   # prints STABLE on success
    ```
 
-3. For the interactive viewer the container shares the host X11 socket.
-   Allow local connections once on the **host**, then run the viewer:
-
-   ```bash
-   xhost +local:              # on the host, once per session
-   ./build/simulation/mpc_locomotion --vx 0.4                   # in the container
-   ```
+3. Run `npm --prefix web run build:full-wasm`, then `npm --prefix web run dev`
+  for the interactive browser viewer.
 
 > [!NOTE]
 > The executable resolves `libmujoco` and the robot model relative to its own

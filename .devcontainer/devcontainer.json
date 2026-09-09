@@ -11,6 +11,16 @@
 	},
 	"workspaceFolder": "/home/${localEnv:USER}/convex-mpc",
 	"workspaceMount": "source=${localWorkspaceFolder},target=/home/${localEnv:USER}/convex-mpc,type=bind",
+	"postCreateCommand": "npm --prefix web install",
+	"forwardPorts": [
+		3000
+	],
+	"portsAttributes": {
+		"3000": {
+			"label": "Convex MPC web viewer",
+			"onAutoForward": "notify"
+		}
+	},
 	"mounts": [
 		"source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
 		"source=/dev/dri,target=/dev/dri,type=bind",
@@ -33,7 +43,8 @@
 				"twxs.cmake",
 				"xaver.clang-format",
 				"ms-vscode.cpptools-extension-pack",
-				"mhutchie.git-graph"
+				"mhutchie.git-graph",
+				"dbaeumer.vscode-eslint"
 			]
 		}
 	}
