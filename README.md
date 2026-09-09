@@ -147,6 +147,21 @@ If `em++ --version` is not available, run **Dev Containers: Rebuild Container**
 in VS Code. Emscripten is installed in the image, while the current workspace
 mount preserves the source tree and `web/node_modules`.
 
+## Continuous integration
+
+GitHub Actions runs `.github/workflows/ci.yaml` for pushes to `main` and pull
+requests. It builds the supplied Docker image and runs the same checks used
+locally:
+
+```bash
+scripts/ci.sh
+```
+
+The check suite configures and builds the native target, runs the 10-second
+headless Trot stability test at `0.2 m/s`, builds and smoke-tests the MPC-only
+WASM binding, builds the full MuJoCo + qpOASES + `SimulationCore` WASM module,
+and produces the production Three.js bundle.
+
 ### VS Code devcontainer
 
 1. Install the **Dev Containers** extension and open the repository folder —

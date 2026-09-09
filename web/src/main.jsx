@@ -114,9 +114,14 @@ function App() {
 
 	return (
 		<main className="shell">
-			<header className="topbar">
-				<span className="eyebrow">CONVEX MPC</span>
-				<span className="status">{runtimeStatus}</span>
+			<header className="app-header">
+				<div className="app-header__row">
+					<a className="app-header__brand" href="https://cmaybe.github.io/">Convex MPC</a>
+					<nav className="app-header__nav" aria-label="Project navigation">
+						<a href="https://github.com/CMaybe/Convex-MPC" target="_blank" rel="noreferrer">GitHub</a>
+						<a href="https://github.com/CMaybe/Convex-MPC#readme" target="_blank" rel="noreferrer">Docs</a>
+					</nav>
+				</div>
 			</header>
 			<section className="workspace">
 				<div className="viewport" aria-label="ANYmal C 3D simulation viewport"><RobotScene forces={forces} command={command} physics={physics} cameraReset={cameraReset} /></div>

@@ -1,13 +1,39 @@
 import React, { Suspense, useMemo, useRef } from "react";
 import { Canvas, extend, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { Matrix4, MeshStandardMaterial, Quaternion, Vector3 } from "three";
+import { Matrix4, MeshStandardMaterial, Quaternion, SRGBColorSpace, TextureLoader, Vector3 } from "three";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 
 extend({ OrbitControls });
 
 const mujocoToThree = new Matrix4().makeBasis(new Vector3(1, 0, 0), new Vector3(0, 0, -1), new Vector3(0, 1, 0));
 const threeToMujoco = mujocoToThree.clone().transpose();
+const meshMaterials = {
+	base_0: { color: "#0d2d08" },
+	base_1: { color: "#2e1e02" },
+	base_2: { color: "#2d0201" },
+	base_3: { color: "#060606" },
+	base_4: { color: "#d0d0d0" },
+	base_5: { texture: "base.png" },
+	top_shell: { texture: "top_shell.png" },
+	bottom_shell: { texture: "bottom_shell.png" },
+	remote: { texture: "remote.png" },
+	hatch: { texture: "hatch.png" },
+	handle: { texture: "handle.png" },
+	face: { texture: "face.png" },
+	battery: { texture: "battery.png" },
+	lidar_cage: { texture: "lidar_cage.png" },
+	depth_camera: { texture: "depth_camera.png" },
+	wide_angle_camera: { texture: "wide_angle_camera.png" },
+	lidar: { texture: "lidar.png" },
+	drive: { texture: "drive.png" },
+	hip_l: { texture: "hip_l.png" },
+	hip_r: { texture: "hip_r.png" },
+	thigh: { texture: "thigh.png" },
+	shank_l: { texture: "shank_l.png" },
+	shank_r: { texture: "shank_r.png" },
+	foot: { texture: "foot.png" }
+};
 
 const nominalFeet = [
 	[0.35, -0.2, -0.54],
@@ -74,15 +100,24 @@ function Robot({ forces, command, physics }) {
 
 function ActualMesh({ visual }) {
 	const source = useLoader(OBJLoader, `/robots/anymal_c/assets/${visual.meshName}.obj`);
+	const definition = meshMaterials[visual.meshName] ?? { color: "#6f7883" };
+	const texture = useLoader(TextureLoader, `/robots/anymal_c/assets/${definition.texture ?? "base.png"}`);
 	const object = useMemo(() => {
 		const clone = source.clone(true);
-		const color = visual.meshName.startsWith("base") || visual.meshName.includes("shell") ? "#d7e5df" : "#6f8f86";
+		texture.colorSpace = SRGBColorSpace;
 		clone.traverse((child) => {
-			if (child.isMesh) child.material = new MeshStandardMaterial({ color, metalness: 0.38, roughness: 0.42 });
+			if (child.isMesh) {
+				child.material = new MeshStandardMaterial({
+					color: definition.color ?? "#ffffff",
+					map: definition.texture ? texture : null,
+					metalness: 0.28,
+					roughness: 0.5
+				});
+			}
 		});
 		clone.applyMatrix4(mujocoToThree);
 		return clone;
-	}, [source, visual.meshName]);
+	}, [source, texture, visual.meshName]);
 	const rotation = useMemo(() => {
 		const matrix = new Matrix4().set(
 			...visual.rotation.slice(0, 3), 0,
@@ -143,19 +178,19 @@ function FollowGrid({ physics }) {
 		if (!physics || !grid.current) return;
 		grid.current.position.set(Math.round(physics.basePosition[0] / 5) * 5, -0.02, -Math.round(physics.basePosition[1] / 5) * 5);
 	});
-	return <gridHelper ref={grid} args={[100, 100, "#52716d", "#25403d"]} />;
+	return <gridHelper ref={grid} args={[100, 100, "#344250", "#202a34"]} />;
 }
 
 export default function RobotScene({ forces, command, physics, cameraReset }) {
 	return (
 		<Canvas shadows camera={{ position: [2.35, 1.65, 2.7], fov: 42 }}>
-			<color attach="background" args={["#142020"]} />
-			<ambientLight intensity={1.8} />
-			<hemisphereLight args={["#d6f2ea", "#1c302d", 1.2]} />
+			<color attach="background" args={["#11171d"]} />
+			<ambientLight intensity={1.35} />
+			<hemisphereLight args={["#dce9f5", "#10161e", 1.1]} />
 			<directionalLight castShadow position={[3, 4, 2]} intensity={2.8} shadow-mapSize={[1024, 1024]} />
-			<directionalLight position={[-3, 2, -2]} intensity={1.1} color="#8bb9cf" />
+			<directionalLight position={[-3, 2, -2]} intensity={0.9} color="#9bbbe8" />
 			<FollowGrid physics={physics} />
-			<mesh receiveShadow position={[0, -0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[100, 100]} /><meshStandardMaterial color="#172927" roughness={0.9} /></mesh>
+			<mesh receiveShadow position={[0, -0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[100, 100]} /><meshStandardMaterial color="#11171d" roughness={0.9} /></mesh>
 			<Suspense fallback={<Robot forces={forces} command={command} physics={physics} />}>
 				{physics?.visualGeometries?.length ? <ActualAnymal visuals={physics.visualGeometries} /> : <Robot forces={forces} command={command} physics={physics} />}
 			</Suspense>

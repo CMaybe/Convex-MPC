@@ -1,6 +1,6 @@
 :root {
-	color: #edf2f4;
-	background: #101416;
+	color: #dce4ed;
+	background: #0d1117;
 	font-family: Georgia, "Times New Roman", serif;
 	font-synthesis: none;
 }
@@ -12,33 +12,47 @@
 body {
 	margin: 0;
 	min-width: 320px;
+	background: #0d1117;
 }
 
 .shell {
 	min-height: 100vh;
 	display: grid;
 	grid-template-rows: auto 1fr auto;
-	background: radial-gradient(circle at 80% 15%, #263d3d 0, #101416 48%);
+	background: #11171d;
 }
 
-.topbar,
-.readout {
+.app-header {
 	display: flex;
+	align-items: center;
+	padding: 1.05rem clamp(1.25rem, 4vw, 4rem);
+	border-bottom: 1px solid #27313b;
+	background: #0d1117;
+}
+
+.app-header__row,
+.app-header__nav {
+	display: flex;
+	align-items: center;
+	gap: 1.25rem;
+}
+
+.app-header__row {
+	width: 100%;
 	justify-content: space-between;
-	gap: 1rem;
-	padding: 1.25rem clamp(1.25rem, 4vw, 4rem);
-	color: #9daeb0;
-	font: 600 0.72rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
-	letter-spacing: 0.08em;
+}
+
+.app-header__brand,
+.app-header__nav a {
+	color: #dce4ed;
+	font: 600 0.78rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+	letter-spacing: 0.06em;
+	text-decoration: none;
 	text-transform: uppercase;
 }
 
-.eyebrow {
-	color: #f2b880;
-}
-
-.status {
-	color: #91c7b1;
+.app-header__nav a:hover {
+	color: #5bd6b5;
 }
 
 .workspace {
@@ -46,12 +60,12 @@ body {
 	grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
 	gap: 1px;
 	min-height: 0;
-	background: #2c4440;
+	background: #27313b;
 }
 
 .viewport {
 	min-height: 580px;
-	background: #142020;
+	background: #11171d;
 }
 
 .viewport canvas {
@@ -65,12 +79,12 @@ body {
 	flex-direction: column;
 	gap: 1.8rem;
 	padding: 2.3rem 1.7rem;
-	background: #182725;
+	background: #151b22;
 }
 
 .panel-label {
 	margin: 0 0 -1.25rem;
-	color: #f2b880;
+	color: #8f9caf;
 	font: 600 0.67rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
 	letter-spacing: 0.12em;
 	text-transform: uppercase;
@@ -78,7 +92,7 @@ body {
 
 h1 {
 	margin: 0;
-	color: #f5f0e8;
+	color: #dce4ed;
 	font-size: 2.25rem;
 	font-weight: 400;
 	line-height: 1;
@@ -86,11 +100,11 @@ h1 {
 
 .reset-button {
 	align-self: flex-start;
-	border: 1px solid #59756e;
+	border: 1px solid #334252;
 	border-radius: 3px;
 	padding: 0.6rem 0.8rem;
-	color: #dce8e4;
-	background: #213532;
+	color: #dce4ed;
+	background: #1b2430;
 	font: 600 0.7rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
@@ -98,14 +112,14 @@ h1 {
 }
 
 .reset-button:hover {
-	border-color: #f2b880;
-	color: #f2b880;
+	border-color: #5bd6b5;
+	color: #5bd6b5;
 }
 
 .control {
 	display: grid;
 	gap: 0.75rem;
-	color: #dce8e4;
+	color: #dce4ed;
 	font: 600 0.78rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
@@ -118,11 +132,11 @@ h1 {
 }
 
 output {
-	color: #f2b880;
+	color: #5bd6b5;
 }
 
 output small {
-	color: #8ba49d;
+	color: #8f9caf;
 	font-size: 0.68rem;
 }
 
@@ -131,8 +145,8 @@ input[type="range"] {
 	height: 3px;
 	margin: 0;
 	border-radius: 0;
-	background: #46615c;
-	accent-color: #f2b880;
+	background: #4a5563;
+	accent-color: #5bd6b5;
 }
 
 .legend {
@@ -141,15 +155,11 @@ input[type="range"] {
 	gap: 0.55rem;
 	margin-top: auto;
 	padding-top: 1.5rem;
-	border-top: 1px solid #38504b;
-	color: #9daeb0;
+	border-top: 1px solid #334252;
+	color: #9ba9ba;
 	font: 600 0.66rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
-}
-
-.tuning-label {
-	margin-top: 0.35rem;
 }
 
 .legend i {
@@ -160,19 +170,33 @@ input[type="range"] {
 }
 
 .legend .cyan {
-	background: #80d8c7;
+	background: #5bd6b5;
 }
 
 .legend .blue {
-	background: #9dbbff;
+	background: #7aa8f8;
+}
+
+.tuning-label {
+	margin-top: 0.35rem;
+}
+
+.readout {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 1.25rem clamp(1.25rem, 4vw, 4rem);
+	border-top: 1px solid #27313b;
+	color: #9ba9ba;
+	background: #11171d;
+	font: 600 0.72rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
 }
 
 @media (max-width: 620px) {
-
-	.topbar,
-	.readout {
-		align-items: flex-start;
-		flex-direction: column;
+	.app-header {
+		padding-block: 0.95rem;
 	}
 
 	.workspace {
@@ -190,5 +214,10 @@ input[type="range"] {
 
 	.legend {
 		margin-top: 0;
+	}
+
+	.readout {
+		align-items: flex-start;
+		flex-direction: column;
 	}
 }
