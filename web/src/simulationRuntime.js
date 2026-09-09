@@ -1,6 +1,7 @@
 export async function createSimulationRuntime() {
-	const { default: createModule } = await import(/* webpackIgnore: true */ "/wasm/convex_mpc_sim_wasm.js");
-	const module = await createModule({ locateFile: (file) => `/wasm/${file}` });
+	const wasmUrl = (path) => new URL(`wasm/${path}`, document.baseURI).toString();
+	const { default: createModule } = await import(/* webpackIgnore: true */ wasmUrl("convex_mpc_sim_wasm.js"));
+	const module = await createModule({ locateFile: wasmUrl });
 	let simulation = new module.SimulationCore();
 	const snapshot = () => {
 		const state = simulation.snapshot();

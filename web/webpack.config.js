@@ -1,4 +1,5 @@
 import HtmlWebpackPlugin from "html-webpack-plugin";
+import CopyWebpackPlugin from "copy-webpack-plugin";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -10,7 +11,7 @@ export default {
     path: path.resolve(root, "dist"),
     filename: "assets/[name].[contenthash].js",
     clean: true,
-    publicPath: "/"
+    publicPath: "auto"
   },
   resolve: {
     extensions: [".js", ".jsx"]
@@ -36,7 +37,10 @@ export default {
       }
     ]
   },
-  plugins: [new HtmlWebpackPlugin({ template: path.resolve(root, "index.html") })],
+  plugins: [
+    new HtmlWebpackPlugin({ template: path.resolve(root, "index.html") }),
+    new CopyWebpackPlugin({ patterns: [{ from: path.resolve(root, "public"), to: path.resolve(root, "dist") }] })
+  ],
   devServer: {
     port: 3000,
     static: {

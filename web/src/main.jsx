@@ -119,7 +119,7 @@ function App() {
 					<a className="app-header__brand" href="https://cmaybe.github.io/">Convex MPC</a>
 					<nav className="app-header__nav" aria-label="Project navigation">
 						<a href="https://github.com/CMaybe/Convex-MPC" target="_blank" rel="noreferrer">GitHub</a>
-						<a href="https://github.com/CMaybe/Convex-MPC#readme" target="_blank" rel="noreferrer">Docs</a>
+						<a href="https://cmaybe.github.io/notes/convex-mpc" target="_blank" rel="noreferrer">Docs</a>
 					</nav>
 				</div>
 			</header>
