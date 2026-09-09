@@ -37,8 +37,20 @@ public:
     // phase offsets between legs (e.g. a half-cycle offset between trot pairs).
     // Call once at gait start, with every leg in contact.
     void resetGaitPhase(const std::array<double, LEG_NUM>& stance_elapsed);
+    void configure_gait(double stance_duration,
+                        double swing_duration,
+                        const std::array<bool, LEG_NUM>& contact_state,
+                        const std::array<double, LEG_NUM>& stance_elapsed,
+                        const std::array<double, LEG_NUM>& swing_elapsed,
+                        size_t mpc_horizon,
+                        double swing_height,
+                        double foothold_velocity_error_gain,
+                        double pitch_reference);
     std::array<Eigen::Vector3d, LEG_NUM> computeSwingForce(RobotState& robot_state,
                                                            const Eigen::Ref<const Eigen::Vector3d>& cmd_vel);
+    void set_nominal_height(double height);
+    void set_mpc_weights(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& q_weights,
+                         const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& r_weights);
     const Eigen::Vector<double, MPC_STATE_DIM>& mpc_result() const;
 
 private:
@@ -63,7 +75,9 @@ private:
 
     Eigen::MatrixXd constraint_coefficient_;
 
-    static constexpr double kSwingHeight = 0.3;  // apex of the swing-foot height profile [m]
+    double swing_height_ = 0.3;
+    double foothold_velocity_error_gain_ = 0.2;
+    double pitch_reference_ = 0;
 
     std::array<double, LEG_NUM> swing_counter_{};
     std::array<double, LEG_NUM> stance_counter_{};

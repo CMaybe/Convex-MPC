@@ -79,6 +79,28 @@ void RobotController::resetGaitPhase(const std::array<double, LEG_NUM>& stance_e
     swing_counter_ = {};
 }
 
+void RobotController::configure_gait(double stance_duration,
+                                     double swing_duration,
+                                     const std::array<bool, LEG_NUM>& contact_state,
+                                     const std::array<double, LEG_NUM>& stance_elapsed,
+                                     const std::array<double, LEG_NUM>& swing_elapsed,
+                                     size_t mpc_horizon,
+                                     double swing_height,
+                                     double foothold_velocity_error_gain,
+                                     double pitch_reference) {
+    stance_duration_ = stance_duration;
+    swing_duration_ = swing_duration;
+    mpc_horizon_ = mpc_horizon;
+    swing_height_ = swing_height;
+    foothold_velocity_error_gain_ = foothold_velocity_error_gain;
+    pitch_reference_ = pitch_reference;
+    stance_counter_ = stance_elapsed;
+    swing_counter_ = swing_elapsed;
+    for (int leg = 0; leg < LEG_NUM; ++leg) {
+        if (!contact_state[leg]) swing_start_position_[leg] = robot_nominal_state_.foot_positions_abs(leg);
+    }
+}
+
 double RobotController::predictCyclePosition(const RobotState& robot_state,
                                              const size_t& leg_idx,
                                              const double& time_ahead) const {
@@ -129,8 +151,8 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
     constexpr double kMaxPositionError = 0.2;  // [m]
     yaw_ref_ = std::clamp(yaw_ref_, euler[2] - kMaxYawError, euler[2] + kMaxYawError);
     for (int axis = 0; axis < 2; axis++)
-        position_ref_[axis] = std::clamp(position_ref_[axis], position[axis] - kMaxPositionError,
-                                         position[axis] + kMaxPositionError);
+        position_ref_[axis] =
+            std::clamp(position_ref_[axis], position[axis] - kMaxPositionError, position[axis] + kMaxPositionError);
     const double z = robot_nominal_state_.position()[2];
     Eigen::VectorXd mpc_states_d;
     mpc_states_d.setZero(MPC_STATE_DIM * mpc_horizon_);
@@ -139,7 +161,7 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeGRF(RobotState& rob
         // clang-format off
         mpc_states_d.segment(mpc_step * MPC_STATE_DIM, MPC_STATE_DIM) <<
 		// orientation
-        0,
+        pitch_reference_,
         0,
         yaw_ref_ + cmd_vel_b[2] * t_ahead,
 		// position
@@ -202,13 +224,11 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeSwingForce(RobotSta
     // Foothold heuristic (eq. 33) plus a velocity-error term: when the body is slower
     // than commanded, feet land further back, tipping the body into acceleration.
     // This carries most of the velocity tracking so the MPC needs less horizontal force.
-    constexpr double kVelocityErrorGain = 0.2;  // foothold shift per velocity error [s]
     Eigen::Vector3d com_velocity_w = robot_state.linear_velocity();
     com_velocity_w[2] = 0;
     Eigen::Vector3d cmd_velocity_w = Rz * Eigen::Vector3d{cmd_vel_b[0], cmd_vel_b[1], 0};
     Eigen::Vector3d foothold_offset_w =
-        com_velocity_w * stance_duration_ / 2 + kVelocityErrorGain * (com_velocity_w - cmd_velocity_w);
-    const std::vector<double> height_profile = {0, 0, kSwingHeight, 0, 0};
+        com_velocity_w * stance_duration_ / 2 + foothold_velocity_error_gain_ * (com_velocity_w - cmd_velocity_w);
     for (int leg_idx = 0; leg_idx < LEG_NUM; leg_idx++) {
         result[leg_idx].setZero();
         if (robot_state.contact_state(leg_idx) == false) {
@@ -224,7 +244,6 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeSwingForce(RobotSta
             const double s = std::min(swing_counter_[leg_idx] / swing_duration_, 1.0);
 
             Eigen::Vector3d touchdown = Rz * robot_nominal_state_.foot_positions_abs(leg_idx) + foothold_offset_w;
-            // Land on the actual ground plane: world height of the nominal foothold.
             touchdown[2] = robot_nominal_state_.foot_positions_abs(leg_idx)[2] + robot_nominal_state_.position()[2];
 
             // Time-parameterized trajectory from lift-off to touchdown: smoothstep in
@@ -234,6 +253,7 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeSwingForce(RobotSta
             Eigen::Vector3d foot_position_d =
                 swing_start_position_[leg_idx] + blend * (touchdown - swing_start_position_[leg_idx]);
             Eigen::Vector3d foot_velocity_d = blend_rate * (touchdown - swing_start_position_[leg_idx]);
+            const std::vector<double> height_profile = {0, 0, swing_height_, 0, 0};
             foot_position_d[2] += utils::bezier_curve(s, height_profile);
             foot_velocity_d[2] += utils::bezier_curve_derivative(s, height_profile) / swing_duration_;
             foot_position_d[2] -= robot_state.position()[2];  // back to body-relative for the PD error
@@ -247,6 +267,21 @@ std::array<Eigen::Vector3d, LEG_NUM> RobotController::computeSwingForce(RobotSta
         }
     }
     return result;
+}
+
+void RobotController::set_nominal_height(double height) {
+    Eigen::Vector3d position = robot_nominal_state_.position();
+    position[2] = height;
+    robot_nominal_state_.updateState(robot_nominal_state_.euler_angle(),
+                                     position,
+                                     robot_nominal_state_.angular_velocity(),
+                                     robot_nominal_state_.linear_velocity());
+}
+
+void RobotController::set_mpc_weights(const Eigen::Ref<const Eigen::Vector<double, MPC_STATE_DIM>>& q_weights,
+                                      const Eigen::Ref<const Eigen::Vector<double, MPC_INPUT_DIM>>& r_weights) {
+    q_weights_ = q_weights;
+    r_weights_ = r_weights;
 }
 
 const Eigen::Vector<double, MPC_STATE_DIM>& RobotController::mpc_result() const { return mpc_result_; }

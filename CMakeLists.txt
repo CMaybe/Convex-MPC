@@ -32,7 +32,7 @@ endif()
 FetchContent_Declare(
     qpoases
     GIT_REPOSITORY https://github.com/coin-or/qpOASES.git
-    GIT_TAG releases/3.2.ANYMAL_SCENE_XML1
+    GIT_TAG releases/3.2.2
 )
 set(QPOASES_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 # qpOASES ships a 2014-era CMake script; default the policies it leaves unset

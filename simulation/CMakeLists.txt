@@ -25,7 +25,10 @@ set_target_properties(mujoco PROPERTIES
 )
 
 # --- simulation executable ------------------------------------------------------
-add_executable(mpc_locomotion main.cpp)
+add_executable(mpc_locomotion
+    main.cpp
+    simulation_core.cpp
+)
 
 target_link_libraries(mpc_locomotion PRIVATE
     convex_mpc
@@ -37,10 +40,13 @@ target_compile_definitions(mpc_locomotion PRIVATE
     ANYMAL_SCENE_XML="${CMAKE_CURRENT_SOURCE_DIR}/rsc/anymal_c/scene.xml"
 )
 
-# Also keep a copy of the robot model next to the executable; main.cpp prefers
-# it over the compile-time source path, so the binary stays usable when the
-# tree is mounted at a different path.
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/rsc DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+# Keep the robot model next to the executable and refresh it after every build;
+# main.cpp prefers this runtime copy, including updated terrain XML and assets.
+add_custom_command(TARGET mpc_locomotion POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/rsc
+        ${CMAKE_CURRENT_BINARY_DIR}/rsc
+)
 
 # Viewer is optional: build it when GLFW development files are present
 # (apt install libglfw3-dev). Without them the binary runs headless.
